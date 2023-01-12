@@ -1,49 +1,21 @@
 package main
 
 import (
-	"fmt"
+	"flag"
 	"log"
-	"net"
-	"time"
 
 	"github.com/MSSkowron/mscache/cache"
 	"github.com/MSSkowron/mscache/server"
 )
 
 func main() {
-	go func() {
-		// Send SET
-		time.Sleep(time.Second * 2)
+	var (
+		listenAddrFlag = flag.String("listenaddr", ":3000", "listen address of the server")
+		leaderAddrFlag = flag.String("leaderaddr", "", "listen address of the leader server")
+	)
+	flag.Parse()
 
-		conn, err := net.Dial("tcp", ":3000")
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		_, err = conn.Write([]byte("SET Foo Bar 2500000000000"))
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		// Send GET
-		time.Sleep(time.Second * 2)
-
-		_, err = conn.Write([]byte("GET Foo"))
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		buf := make([]byte, 1024)
-		n, err := conn.Read(buf)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		fmt.Println(string(buf[:n]))
-	}()
-
-	server := server.NewServer(":3000", true, cache.NewCache())
-	if err := server.Run(); err != nil {
+	if err := server.NewServer(*listenAddrFlag, *leaderAddrFlag, len(*leaderAddrFlag) == 0, cache.NewCache()).Run(); err != nil {
 		log.Fatalln(err)
 	}
 }

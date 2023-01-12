@@ -1,6 +1,9 @@
 package server
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type Command string
 
@@ -14,4 +17,15 @@ type Message struct {
 	Key   []byte
 	Value []byte
 	TTL   time.Duration
+}
+
+func (m *Message) ToBytes() []byte {
+	switch m.Cmd {
+	case CMDSet:
+		return []byte(fmt.Sprintf("%s %s %s %s", m.Cmd, m.Key, m.Value, m.TTL))
+	case CMDGet:
+		return []byte(fmt.Sprintf("%s %s", m.Cmd, m.Key))
+	default:
+		panic("unknow command")
+	}
 }

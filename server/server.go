@@ -17,16 +17,25 @@ const bufferSize = 2048
 
 type Server struct {
 	listenAddr string
+	leaderAddr string
 	isLeader   bool
+	followers  map[net.Conn]struct{}
 	cache      cache.Cacher
 }
 
-func NewServer(listenAddr string, isLeader bool, c cache.Cacher) *Server {
-	return &Server{
+func NewServer(listenAddr, leaderAddr string, isLeader bool, c cache.Cacher) *Server {
+	server := &Server{
 		listenAddr: listenAddr,
+		leaderAddr: leaderAddr,
 		isLeader:   isLeader,
 		cache:      c,
 	}
+
+	if isLeader {
+		server.followers = make(map[net.Conn]struct{})
+	}
+
+	return server
 }
 
 func (s *Server) Run() error {
@@ -36,6 +45,17 @@ func (s *Server) Run() error {
 	}
 
 	log.Printf("[Server] Server is running on port [%s]\n", s.listenAddr)
+
+	if !s.isLeader {
+		conn, err := net.Dial("tcp", s.leaderAddr)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		log.Printf("[Server] Connected with leader: [%s]\n", s.leaderAddr)
+
+		go s.handleConn(conn)
+	}
 
 	for {
 		conn, err := ln.Accept()
@@ -94,7 +114,9 @@ func (s *Server) handleSetCommand(conn net.Conn, msg *Message) error {
 		return err
 	}
 
-	go s.sendToFollowers(context.TODO(), msg)
+	if s.isLeader {
+		go s.sendToFollowers(context.TODO(), msg)
+	}
 
 	return nil
 }
@@ -107,13 +129,22 @@ func (s *Server) handleGetCommand(conn net.Conn, msg *Message) error {
 
 	_, err = conn.Write([]byte(value))
 
-	go s.sendToFollowers(context.TODO(), msg)
+	if s.isLeader {
+		go s.sendToFollowers(context.TODO(), msg)
+	}
 
 	return err
 }
 
 func (s *Server) sendToFollowers(ctx context.Context, msg *Message) error {
-
+	log.Println("Forwarding to followers")
+	for conn := range s.followers {
+		_, err := conn.Write(msg.ToBytes())
+		if err != nil {
+			log.Println("Write to follower error: ", err.Error())
+			continue
+		}
+	}
 	return nil
 }
 
