@@ -1,9 +1,13 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/MSSkowron/mscache/cache"
 )
@@ -60,5 +64,65 @@ func (s *Server) handleConn(conn net.Conn) {
 
 		msg := buf[:n]
 		fmt.Println(string(msg))
+
+		go s.handleCommand(conn, buf[:n])
 	}
+}
+
+func (s *Server) handleCommand(conn net.Conn, rawCMD []byte) {
+	msg, err := parseCommand(rawCMD)
+	if err != nil {
+		log.Printf("Failed to parse command: %s\n", err.Error())
+		//respond
+		return
+	}
+
+	switch msg.Cmd {
+	case CMDSet:
+		if err := s.handleSetCommand(conn, msg); err != nil {
+			log.Printf("Failed to handle set command: %s\n", err.Error())
+			//respond
+			return
+		}
+	}
+}
+
+func (s *Server) handleSetCommand(conn net.Conn, msg *Message) error {
+	fmt.Println("Handling the set command: ", msg)
+
+	if err := s.cache.Set(msg.Key, msg.Value, msg.TTL); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func parseCommand(raw []byte) (*Message, error) {
+	rawStr := string(raw)
+
+	parts := strings.Split(rawStr, " ")
+	if len(parts) < 2 {
+		return nil, errors.New("invalid protocol format")
+	}
+
+	msg := &Message{
+		Cmd: Command(parts[0]),
+		Key: []byte(parts[1]),
+	}
+
+	if msg.Cmd == CMDSet {
+		if len(parts) < 4 {
+			return nil, errors.New("invalid SET command")
+		}
+
+		msg.Value = []byte(parts[2])
+
+		ttl, err := strconv.Atoi(parts[3])
+		if err != nil {
+			return nil, errors.New("invalid TTL in SET command")
+		}
+		msg.TTL = time.Duration(ttl)
+	}
+
+	return msg, nil
 }
