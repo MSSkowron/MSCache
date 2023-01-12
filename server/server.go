@@ -71,6 +71,10 @@ func (s *Server) Run() error {
 func (s *Server) handleConn(conn net.Conn) {
 	defer conn.Close()
 
+	if s.isLeader {
+		s.followers[conn] = struct{}{}
+	}
+
 	buf := make([]byte, bufferSize)
 	for {
 		n, err := conn.Read(buf)
