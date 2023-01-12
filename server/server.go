@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -63,7 +64,7 @@ func (s *Server) handleConn(conn net.Conn) {
 		}
 
 		msg := buf[:n]
-		fmt.Println(string(msg))
+		log.Println("Got message:", string(msg))
 
 		go s.handleCommand(conn, buf[:n])
 	}
@@ -88,11 +89,16 @@ func (s *Server) handleCommand(conn net.Conn, rawCMD []byte) {
 }
 
 func (s *Server) handleSetCommand(conn net.Conn, msg *Message) error {
-	fmt.Println("Handling the set command: ", msg)
-
 	if err := s.cache.Set(msg.Key, msg.Value, msg.TTL); err != nil {
 		return err
 	}
+
+	go s.sendToFollowers(context.TODO(), msg)
+
+	return nil
+}
+
+func (s *Server) sendToFollowers(ctx context.Context, msg *Message) error {
 
 	return nil
 }
