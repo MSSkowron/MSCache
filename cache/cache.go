@@ -8,20 +8,20 @@ import (
 )
 
 type Cache struct {
-	lock sync.RWMutex
+	mu   sync.RWMutex
 	data map[string][]byte
 }
 
 func NewCache() *Cache {
 	return &Cache{
-		lock: sync.RWMutex{},
+		mu:   sync.RWMutex{},
 		data: make(map[string][]byte),
 	}
 }
 
 func (c *Cache) Set(key, value []byte, ttl time.Duration) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	c.data[string(key)] = value
 	log.Printf("[Cache] SET %s to %s\n", string(key), string(value))
@@ -35,8 +35,8 @@ func (c *Cache) Set(key, value []byte, ttl time.Duration) error {
 }
 
 func (c *Cache) Get(key []byte) ([]byte, error) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
 	keyStr := string(key)
 
@@ -51,8 +51,8 @@ func (c *Cache) Get(key []byte) ([]byte, error) {
 }
 
 func (c *Cache) Delete(key []byte) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	delete(c.data, string(key))
 
@@ -60,8 +60,8 @@ func (c *Cache) Delete(key []byte) error {
 }
 
 func (c *Cache) Contains(key []byte) bool {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
 	_, ok := c.data[string(key)]
 	return ok
