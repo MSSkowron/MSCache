@@ -15,31 +15,27 @@ import (
 
 const bufferSize = 2048
 
-type ServerOpts struct {
-	ListenAddr string
-	IsLeader   bool
-}
-
 type Server struct {
-	ServerOpts
-
-	cache cache.Cacher
+	listenAddr string
+	isLeader   bool
+	cache      cache.Cacher
 }
 
-func NewServer(opts ServerOpts, c cache.Cacher) *Server {
+func NewServer(listenAddr string, isLeader bool, c cache.Cacher) *Server {
 	return &Server{
-		ServerOpts: opts,
+		listenAddr: listenAddr,
+		isLeader:   isLeader,
 		cache:      c,
 	}
 }
 
 func (s *Server) Run() error {
-	ln, err := net.Listen("tcp", s.ListenAddr)
+	ln, err := net.Listen("tcp", s.listenAddr)
 	if err != nil {
 		return fmt.Errorf("Listen error: %s\n", err.Error())
 	}
 
-	log.Printf("Server is running on port [%s]\n", s.ListenAddr)
+	log.Printf("[Server] Server is running on port [%s]\n", s.listenAddr)
 
 	for {
 		conn, err := ln.Accept()
@@ -63,28 +59,33 @@ func (s *Server) handleConn(conn net.Conn) {
 			break
 		}
 
-		msg := buf[:n]
-		log.Println("Got message:", string(msg))
-
 		go s.handleCommand(conn, buf[:n])
 	}
 }
 
 func (s *Server) handleCommand(conn net.Conn, rawCMD []byte) {
+	var err error
+
+	defer func() {
+		if err != nil {
+			log.Printf("Failed to handle command: %s\n", err.Error())
+			_, err = conn.Write([]byte(err.Error()))
+			if err != nil {
+				log.Printf("Failed to respond: %s\n", err.Error())
+			}
+		}
+	}()
+
 	msg, err := parseCommand(rawCMD)
 	if err != nil {
-		log.Printf("Failed to parse command: %s\n", err.Error())
-		//respond
 		return
 	}
 
 	switch msg.Cmd {
 	case CMDSet:
-		if err := s.handleSetCommand(conn, msg); err != nil {
-			log.Printf("Failed to handle set command: %s\n", err.Error())
-			//respond
-			return
-		}
+		err = s.handleSetCommand(conn, msg)
+	case CMDGet:
+		err = s.handleGetCommand(conn, msg)
 	}
 }
 
@@ -96,6 +97,19 @@ func (s *Server) handleSetCommand(conn net.Conn, msg *Message) error {
 	go s.sendToFollowers(context.TODO(), msg)
 
 	return nil
+}
+
+func (s *Server) handleGetCommand(conn net.Conn, msg *Message) error {
+	value, err := s.cache.Get(msg.Key)
+	if err != nil {
+		return err
+	}
+
+	_, err = conn.Write([]byte(value))
+
+	go s.sendToFollowers(context.TODO(), msg)
+
+	return err
 }
 
 func (s *Server) sendToFollowers(ctx context.Context, msg *Message) error {
