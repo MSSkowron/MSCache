@@ -26,7 +26,7 @@ func (c *Cache) Set(key, value []byte, ttl time.Duration) error {
 	c.data[string(key)] = value
 	log.Printf("[Cache] SET %s to %s\n", string(key), string(value))
 
-	// It is better to create a go routing that clears up expired keys every some period of time
+	// It is better to create a go routine that clears up expired keys every some period of time
 	if ttl > 0 {
 		go func() {
 			<-time.After(ttl)
