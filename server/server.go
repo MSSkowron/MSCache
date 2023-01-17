@@ -11,8 +11,6 @@ import (
 	"github.com/MSSkowron/mscache/protocol"
 )
 
-const bufferSize = 2048
-
 type Server struct {
 	listenAddr string
 	leaderAddr string
