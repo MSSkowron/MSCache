@@ -18,7 +18,7 @@ func main() {
 		panic("listenaddr flag is required")
 	}
 
-	if err := server.NewServer(*listenAddrFlag, *leaderAddrFlag, len(*leaderAddrFlag) == 0, cache.New()).Run(); err != nil {
+	if err := server.New(*listenAddrFlag, *leaderAddrFlag, len(*leaderAddrFlag) == 0, cache.New()).Run(); err != nil {
 		panic(err)
 	}
 }

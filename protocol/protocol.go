@@ -21,36 +21,54 @@ type CommandSet struct {
 	TTL   int
 }
 
-func (c *CommandSet) Bytes() []byte {
+func (c *CommandSet) Bytes() ([]byte, error) {
 	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, CmdSet)
+	if err := binary.Write(buf, binary.LittleEndian, CmdSet); err != nil {
+		return nil, err
+	}
 
 	keyLen := int32(len(c.Key))
-	binary.Write(buf, binary.LittleEndian, keyLen)
-	binary.Write(buf, binary.LittleEndian, c.Key)
+	if err := binary.Write(buf, binary.LittleEndian, keyLen); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(buf, binary.LittleEndian, c.Key); err != nil {
+		return nil, err
+	}
 
 	valueLen := int32(len(c.Value))
-	binary.Write(buf, binary.LittleEndian, valueLen)
-	binary.Write(buf, binary.LittleEndian, c.Value)
+	if err := binary.Write(buf, binary.LittleEndian, valueLen); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(buf, binary.LittleEndian, c.Value); err != nil {
+		return nil, err
+	}
 
-	binary.Write(buf, binary.LittleEndian, int32(c.TTL))
+	if err := binary.Write(buf, binary.LittleEndian, int32(c.TTL)); err != nil {
+		return nil, err
+	}
 
-	return buf.Bytes()
+	return buf.Bytes(), nil
 }
 
 type CommandGet struct {
 	Key []byte
 }
 
-func (c *CommandGet) Bytes() []byte {
+func (c *CommandGet) Bytes() ([]byte, error) {
 	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, CmdGet)
+	if err := binary.Write(buf, binary.LittleEndian, CmdGet); err != nil {
+		return nil, err
+	}
 
 	keyLen := int32(len(c.Key))
-	binary.Write(buf, binary.LittleEndian, keyLen)
-	binary.Write(buf, binary.LittleEndian, c.Key)
+	if err := binary.Write(buf, binary.LittleEndian, keyLen); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(buf, binary.LittleEndian, c.Key); err != nil {
+		return nil, err
+	}
 
-	return buf.Bytes()
+	return buf.Bytes(), nil
 }
 
 func ParseCommand(r io.Reader) (any, error) {
@@ -65,7 +83,7 @@ func ParseCommand(r io.Reader) (any, error) {
 	case CmdGet:
 		return parseGetCommand(r)
 	default:
-		return nil, errors.New("invalid command")
+		return nil, errors.New("invalid command type")
 	}
 }
 

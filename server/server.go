@@ -20,7 +20,7 @@ type Server struct {
 	cache      cache.Cacher
 }
 
-func NewServer(listenAddr, leaderAddr string, isLeader bool, c cache.Cacher) *Server {
+func New(listenAddr, leaderAddr string, isLeader bool, c cache.Cacher) *Server {
 	server := &Server{
 		listenAddr: listenAddr,
 		leaderAddr: leaderAddr,

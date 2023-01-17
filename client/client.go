@@ -33,7 +33,12 @@ func (c *Client) Set(ctx context.Context, key, value []byte, ttl int) ([]byte, e
 		TTL:   ttl,
 	}
 
-	_, err := c.conn.Write(cmd.Bytes())
+	b, err := cmd.Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = c.conn.Write(b)
 	if err != nil {
 		return nil, err
 	}

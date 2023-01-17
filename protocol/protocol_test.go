@@ -7,6 +7,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestBytes(t *testing.T) {
+	cmdValid := &CommandSet{
+		Key:   []byte("Foo"),
+		Value: []byte("Bar"),
+		TTL:   2,
+	}
+
+	_, err := cmdValid.Bytes()
+	assert.Nil(t, err)
+}
+
 func TestParseSetCommand(t *testing.T) {
 	cmd := &CommandSet{
 		Key:   []byte("Foo"),
@@ -14,7 +25,10 @@ func TestParseSetCommand(t *testing.T) {
 		TTL:   2,
 	}
 
-	r := bytes.NewReader(cmd.Bytes())
+	b, err := cmd.Bytes()
+	assert.Nil(t, err)
+
+	r := bytes.NewReader(b)
 
 	pcmd, err := ParseCommand(r)
 	assert.Nil(t, err)
@@ -27,7 +41,10 @@ func TestParseGetCommand(t *testing.T) {
 		Key: []byte("Foo"),
 	}
 
-	r := bytes.NewReader(cmd.Bytes())
+	b, err := cmd.Bytes()
+	assert.Nil(t, err)
+
+	r := bytes.NewReader(b)
 
 	pcmd, err := ParseCommand(r)
 	assert.Nil(t, err)
