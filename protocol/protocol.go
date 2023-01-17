@@ -21,6 +21,7 @@ const (
 	StatusNone Status = iota
 	StatusOK
 	StatusError
+	StatusKeyNotFound
 )
 
 type ResponseSet struct {
@@ -47,9 +48,11 @@ func (s Status) String() string {
 	case StatusOK:
 		return "OK"
 	case StatusError:
-		return "Error"
+		return "ERROR"
+	case StatusKeyNotFound:
+		return "NOT FOUND"
 	default:
-		return "None"
+		return "NONE"
 	}
 }
 

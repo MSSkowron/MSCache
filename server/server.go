@@ -123,7 +123,7 @@ func (s *Server) handleGetCommand(conn net.Conn, cmd *protocol.CommandGet) {
 
 	val, err := s.cache.Get(cmd.Key)
 	if err != nil {
-		resp.Status = protocol.StatusError
+		resp.Status = protocol.StatusKeyNotFound
 		log.Printf("[Server] Handling GET command error: %s\n", err.Error())
 		return
 	}
