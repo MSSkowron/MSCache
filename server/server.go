@@ -80,21 +80,22 @@ func (s *Server) handleCommand(conn net.Conn, cmd any) {
 	}
 }
 
-func (s *Server) handleSetCommand(conn net.Conn, cmd *protocol.CommandSet) error {
+func (s *Server) handleSetCommand(conn net.Conn, cmd *protocol.CommandSet) {
 	if err := s.cache.Set(cmd.Key, cmd.Value, time.Duration(cmd.TTL)); err != nil {
-		return err
+		log.Printf("[Server] Handling SET command error: %s\n", err.Error())
+		return
 	}
-
-	return nil
 }
 
-func (s *Server) handleGetCommand(conn net.Conn, cmd *protocol.CommandGet) error {
+func (s *Server) handleGetCommand(conn net.Conn, cmd *protocol.CommandGet) {
 	val, err := s.cache.Get(cmd.Key)
 	if err != nil {
-		return err
+		log.Printf("[Server] Handling GET command error: %s\n", err.Error())
+		return
 	}
 
 	_, err = conn.Write(val)
-
-	return err
+	if err != nil {
+		log.Printf("[Server] Sending response to %s while handling GET command error: %s\n", conn.RemoteAddr(), err.Error())
+	}
 }
