@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"time"
 
@@ -25,7 +26,16 @@ func main() {
 			log.Fatalln(err)
 		}
 
-		c.Set(context.TODO(), []byte("mateusz"), []byte("skowron"), 100000000000)
+		if err := c.Set(context.TODO(), []byte("mateusz"), []byte("skowron"), 1000000000000000); err != nil {
+			fmt.Println(err)
+		}
+
+		val, err := c.Get(context.TODO(), []byte("mateusz"))
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		fmt.Println(string(val))
 
 		c.Close()
 	}()

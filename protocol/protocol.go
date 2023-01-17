@@ -32,6 +32,27 @@ type ResponseGet struct {
 	Value  []byte
 }
 
+type CommandSet struct {
+	Key   []byte
+	Value []byte
+	TTL   int
+}
+
+type CommandGet struct {
+	Key []byte
+}
+
+func (s Status) String() string {
+	switch s {
+	case StatusOK:
+		return "OK"
+	case StatusError:
+		return "Error"
+	default:
+		return "None"
+	}
+}
+
 func (r *ResponseSet) Bytes() ([]byte, error) {
 	buf := new(bytes.Buffer)
 	if err := binary.Write(buf, binary.LittleEndian, r.Status); err != nil {
@@ -56,16 +77,6 @@ func (r *ResponseGet) Bytes() ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
-}
-
-type CommandSet struct {
-	Key   []byte
-	Value []byte
-	TTL   int
-}
-
-type CommandGet struct {
-	Key []byte
 }
 
 func (c *CommandSet) Bytes() ([]byte, error) {
@@ -112,6 +123,35 @@ func (c *CommandGet) Bytes() ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+func ParseSetResponse(r io.Reader) (*ResponseSet, error) {
+	resp := &ResponseSet{}
+
+	if err := binary.Read(r, binary.LittleEndian, &resp.Status); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func ParseGetResponse(r io.Reader) (*ResponseGet, error) {
+	resp := &ResponseGet{}
+
+	if err := binary.Read(r, binary.LittleEndian, &resp.Status); err != nil {
+		return nil, err
+	}
+
+	var valueLen int32
+	if err := binary.Read(r, binary.LittleEndian, &valueLen); err != nil {
+		return nil, err
+	}
+	resp.Value = make([]byte, valueLen)
+	if err := binary.Read(r, binary.LittleEndian, &resp.Value); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 func ParseCommand(r io.Reader) (any, error) {
