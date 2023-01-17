@@ -51,6 +51,8 @@ func (s *Server) Run() error {
 func (s *Server) handleConn(conn net.Conn) {
 	defer conn.Close()
 
+	log.Printf("[Server] New connection made: %s", conn.RemoteAddr())
+
 	for {
 		cmd, err := protocol.ParseCommand(conn)
 		if err != nil {
@@ -79,21 +81,70 @@ func (s *Server) handleCommand(conn net.Conn, cmd any) {
 }
 
 func (s *Server) handleSetCommand(conn net.Conn, cmd *protocol.CommandSet) {
+	var status protocol.Status
+
+	defer func() {
+		response := protocol.ResponseSet{
+			Status: status,
+		}
+
+		b, err := response.Bytes()
+		if err != nil {
+			log.Printf("[Server] Error sending response to %s while handling SET command error: %s\n", conn.RemoteAddr(), err.Error())
+			return
+		}
+
+		if err := s.respond(conn, b); err != nil {
+			log.Printf("[Server] Error sending response to %s while handling SET command error: %s\n", conn.RemoteAddr(), err.Error())
+			return
+		}
+	}()
+
 	if err := s.cache.Set(cmd.Key, cmd.Value, time.Duration(cmd.TTL)); err != nil {
+		status = protocol.StatusError
 		log.Printf("[Server] Handling SET command error: %s\n", err.Error())
 		return
 	}
+
+	status = protocol.StatusOK
 }
 
 func (s *Server) handleGetCommand(conn net.Conn, cmd *protocol.CommandGet) {
+	var (
+		status protocol.Status
+		value  []byte
+	)
+
+	defer func() {
+		response := protocol.ResponseGet{
+			Status: status,
+			Value:  value,
+		}
+
+		b, err := response.Bytes()
+		if err != nil {
+			log.Printf("[Server] Error sending response to %s while handling GET command error: %s\n", conn.RemoteAddr(), err.Error())
+			return
+		}
+
+		if err := s.respond(conn, b); err != nil {
+			log.Printf("[Server] Error sending response to %s while handling GET command error: %s\n", conn.RemoteAddr(), err.Error())
+			return
+		}
+	}()
+
 	val, err := s.cache.Get(cmd.Key)
 	if err != nil {
+		status = protocol.StatusError
 		log.Printf("[Server] Handling GET command error: %s\n", err.Error())
 		return
 	}
 
-	_, err = conn.Write(val)
-	if err != nil {
-		log.Printf("[Server] Sending response to %s while handling GET command error: %s\n", conn.RemoteAddr(), err.Error())
-	}
+	status = protocol.StatusOK
+	value = val
+}
+
+func (s *Server) respond(conn net.Conn, msg []byte) error {
+	_, err := conn.Write(msg)
+	return err
 }

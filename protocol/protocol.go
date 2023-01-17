@@ -15,10 +15,57 @@ const (
 	CmdGet
 )
 
+type Status byte
+
+const (
+	StatusNone Status = iota
+	StatusOK
+	StatusError
+)
+
+type ResponseSet struct {
+	Status Status
+}
+
+type ResponseGet struct {
+	Status Status
+	Value  []byte
+}
+
+func (r *ResponseSet) Bytes() ([]byte, error) {
+	buf := new(bytes.Buffer)
+	if err := binary.Write(buf, binary.LittleEndian, r.Status); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func (r *ResponseGet) Bytes() ([]byte, error) {
+	buf := new(bytes.Buffer)
+	if err := binary.Write(buf, binary.LittleEndian, r.Status); err != nil {
+		return nil, err
+	}
+
+	valueLen := int32(len(r.Value))
+	if err := binary.Write(buf, binary.LittleEndian, valueLen); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(buf, binary.LittleEndian, r.Value); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
 type CommandSet struct {
 	Key   []byte
 	Value []byte
 	TTL   int
+}
+
+type CommandGet struct {
+	Key []byte
 }
 
 func (c *CommandSet) Bytes() ([]byte, error) {
@@ -48,10 +95,6 @@ func (c *CommandSet) Bytes() ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
-}
-
-type CommandGet struct {
-	Key []byte
 }
 
 func (c *CommandGet) Bytes() ([]byte, error) {
