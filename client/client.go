@@ -88,3 +88,7 @@ func (c *Client) Get(ctx context.Context, key []byte) ([]byte, error) {
 
 	return resp.Value, nil
 }
+
+func (c Client) String() string {
+	return c.conn.RemoteAddr().String()
+}

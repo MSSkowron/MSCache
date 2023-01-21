@@ -11,6 +11,7 @@ import (
 
 	"github.com/MSSkowron/mscache/cache"
 	"github.com/MSSkowron/mscache/client"
+	"github.com/MSSkowron/mscache/logger"
 	"github.com/MSSkowron/mscache/protocol"
 )
 
@@ -18,8 +19,8 @@ type Server struct {
 	listenAddr string
 	leaderAddr string
 	isLeader   bool
-	cache      cache.Cacher
 	members    map[*client.Client]struct{}
+	cache      cache.Cacher
 }
 
 func New(listenAddr, leaderAddr string, isLeader bool, c cache.Cacher) *Server {
@@ -35,7 +36,7 @@ func New(listenAddr, leaderAddr string, isLeader bool, c cache.Cacher) *Server {
 func (s *Server) Run() error {
 	ln, err := net.Listen("tcp", s.listenAddr)
 	if err != nil {
-		return fmt.Errorf("listen error: %s\n", err.Error())
+		return fmt.Errorf("listen error: %s", err.Error())
 	}
 
 	if !s.isLeader && len(s.leaderAddr) != 0 {
@@ -46,12 +47,12 @@ func (s *Server) Run() error {
 		}()
 	}
 
-	log.Printf("[Server] Server is running on port [%s] is leader [%t]\n", s.listenAddr, s.isLeader)
+	logger.InfoLogger.Printf("server is running on port [%s] is leader [%t]", s.listenAddr, s.isLeader)
 
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			log.Printf("accept error: %s\n", err.Error())
+			logger.ErrorLogger.Printf("accept error: %s", err.Error())
 			continue
 		}
 
@@ -65,7 +66,7 @@ func (s *Server) dialLeader() error {
 		return fmt.Errorf("failed to dial leader [%s]", s.leaderAddr)
 	}
 
-	log.Printf("[Server] Connected to leader [%s]\n", s.leaderAddr)
+	logger.InfoLogger.Printf("connected to leader [%s]", s.leaderAddr)
 
 	if err := binary.Write(conn, binary.LittleEndian, protocol.CmdJoin); err != nil {
 		return err
@@ -79,13 +80,13 @@ func (s *Server) dialLeader() error {
 func (s *Server) handleConn(conn net.Conn) {
 	defer conn.Close()
 
-	log.Printf("[Server] New connection made: %s", conn.RemoteAddr())
+	logger.InfoLogger.Printf("new connection made: %s", conn.RemoteAddr())
 
 	for {
 		cmd, err := protocol.ParseCommand(conn)
 		if err != nil {
 			if err != io.EOF {
-				log.Printf("parse command error: %s\n", err.Error())
+				logger.ErrorLogger.Printf("parse command error: %s", err.Error())
 			}
 
 			break
@@ -94,7 +95,7 @@ func (s *Server) handleConn(conn net.Conn) {
 		go s.handleCommand(conn, cmd)
 	}
 
-	log.Printf("[Server] Connection closed: %s", conn.RemoteAddr())
+	logger.InfoLogger.Printf("connection closed: %s", conn.RemoteAddr())
 }
 
 func (s *Server) handleCommand(conn net.Conn, cmd any) {
@@ -109,15 +110,18 @@ func (s *Server) handleCommand(conn net.Conn, cmd any) {
 }
 
 func (s *Server) handleSetCommand(conn net.Conn, cmd *protocol.CommandSet) {
-	log.Printf("[Server] SET %s to %s\n", cmd.Key, cmd.Value)
+	msg := fmt.Sprintf("SET %s to %s", cmd.Key, cmd.Value)
+
+	logger.InfoLogger.Println(msg)
 
 	go func() {
 		for member := range s.members {
 			if err := member.Set(context.Background(), cmd.Key, cmd.Value, cmd.TTL); err != nil {
-				log.Println("[Server] Forward to member error:", err)
+				logger.ErrorLogger.Printf("forward to member [%s] error [%s]", member, err.Error())
+				continue
 			}
 
-			log.Printf("[Server] Forwarding message to members")
+			logger.InfoLogger.Printf("forwarded message [%s] to member [%s]", msg, member)
 		}
 	}()
 
@@ -126,19 +130,19 @@ func (s *Server) handleSetCommand(conn net.Conn, cmd *protocol.CommandSet) {
 	defer func() {
 		b, err := resp.Bytes()
 		if err != nil {
-			log.Printf("[Server] Error sending response to %s while handling SET command error: %s\n", conn.RemoteAddr(), err.Error())
+			logger.ErrorLogger.Printf("error sending response to %s while handling SET command error: %s", conn.RemoteAddr(), err.Error())
 			return
 		}
 
 		if err := s.respond(conn, b); err != nil {
-			log.Printf("[Server] Error sending response to %s while handling SET command error: %s\n", conn.RemoteAddr(), err.Error())
+			logger.ErrorLogger.Printf("esending response to %s while handling SET command error: %s", conn.RemoteAddr(), err.Error())
 			return
 		}
 	}()
 
 	if err := s.cache.Set(cmd.Key, cmd.Value, time.Duration(cmd.TTL)); err != nil {
 		resp.Status = protocol.StatusError
-		log.Printf("[Server] Handling SET command error: %s\n", err.Error())
+		logger.InfoLogger.Printf("handling SET command error: %s", err.Error())
 		return
 	}
 
@@ -146,19 +150,19 @@ func (s *Server) handleSetCommand(conn net.Conn, cmd *protocol.CommandSet) {
 }
 
 func (s *Server) handleGetCommand(conn net.Conn, cmd *protocol.CommandGet) {
-	log.Printf("[Server] GET %s\n", cmd.Key)
+	logger.InfoLogger.Printf("GET %s", cmd.Key)
 
 	resp := protocol.ResponseGet{}
 
 	defer func() {
 		b, err := resp.Bytes()
 		if err != nil {
-			log.Printf("[Server] Error sending response to %s while handling GET command error: %s\n", conn.RemoteAddr(), err.Error())
+			logger.ErrorLogger.Printf("error sending response to %s while handling GET command error: %s", conn.RemoteAddr(), err.Error())
 			return
 		}
 
 		if err := s.respond(conn, b); err != nil {
-			log.Printf("[Server] Error sending response to %s while handling GET command error: %s\n", conn.RemoteAddr(), err.Error())
+			logger.ErrorLogger.Printf("error sending response to %s while handling GET command error: %s", conn.RemoteAddr(), err.Error())
 			return
 		}
 	}()
@@ -166,7 +170,7 @@ func (s *Server) handleGetCommand(conn net.Conn, cmd *protocol.CommandGet) {
 	val, err := s.cache.Get(cmd.Key)
 	if err != nil {
 		resp.Status = protocol.StatusKeyNotFound
-		log.Printf("[Server] Handling GET command error: %s\n", err.Error())
+		logger.ErrorLogger.Printf("handling GET command error: %s", err.Error())
 		return
 	}
 
@@ -175,7 +179,7 @@ func (s *Server) handleGetCommand(conn net.Conn, cmd *protocol.CommandGet) {
 }
 
 func (s *Server) handleJoinCommand(conn net.Conn, cmd *protocol.CommandJoin) {
-	log.Printf("[Server] Member just joined the cluster [%s]\n", conn.RemoteAddr())
+	logger.InfoLogger.Printf("member just joined the cluster [%s]", conn.RemoteAddr())
 
 	s.members[client.NewFromConn(conn)] = struct{}{}
 }

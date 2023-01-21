@@ -2,9 +2,10 @@ package cache
 
 import (
 	"fmt"
-	"log"
 	"sync"
 	"time"
+
+	"github.com/MSSkowron/mscache/logger"
 )
 
 // Cache is a struct that represents key-value cache.
@@ -28,7 +29,8 @@ func (c *Cache) Set(key, value []byte, ttl time.Duration) error {
 	defer c.mu.Unlock()
 
 	c.data[string(key)] = value
-	log.Printf("[Cache] SET %s to %s\n", string(key), string(value))
+
+	logger.InfoLogger.Printf("SET %s to %s", string(key), string(value))
 
 	// It is better to create a go routine that clears up expired keys every some period of time
 	if ttl > 0 {
@@ -53,7 +55,7 @@ func (c *Cache) Get(key []byte) ([]byte, error) {
 		return nil, fmt.Errorf("key (%s) not found", keyStr)
 	}
 
-	log.Printf("[Cache] GET %s = %s\n", string(key), string(val))
+	logger.InfoLogger.Printf("GET %s = %s", string(key), string(val))
 
 	return val, nil
 }
