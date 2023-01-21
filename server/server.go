@@ -46,7 +46,7 @@ func (s *Server) Run() error {
 		}()
 	}
 
-	log.Printf("[Server] Server is running on port [%s] is leader [%d]\n", s.listenAddr, s.isLeader)
+	log.Printf("[Server] Server is running on port [%s] is leader [%t]\n", s.listenAddr, s.isLeader)
 
 	for {
 		conn, err := ln.Accept()
@@ -65,9 +65,11 @@ func (s *Server) dialLeader() error {
 		return fmt.Errorf("failed to dial leader [%s]", s.leaderAddr)
 	}
 
-	log.Printf("[Server] connected to leader [%s]\n", s.leaderAddr)
+	log.Printf("[Server] Connected to leader [%s]\n", s.leaderAddr)
 
-	binary.Write(conn, binary.LittleEndian, protocol.CmdJoin)
+	if err := binary.Write(conn, binary.LittleEndian, protocol.CmdJoin); err != nil {
+		return err
+	}
 
 	s.handleConn(conn)
 
