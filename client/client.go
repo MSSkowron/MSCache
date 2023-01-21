@@ -23,6 +23,12 @@ func New(endpoint string) (*Client, error) {
 	}, nil
 }
 
+func NewFromConn(conn net.Conn) *Client {
+	return &Client{
+		conn: conn,
+	}
+}
+
 func (c *Client) Close() error {
 	return c.conn.Close()
 }

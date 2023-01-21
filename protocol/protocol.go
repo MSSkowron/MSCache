@@ -13,6 +13,8 @@ const (
 	CmdNone Command = iota
 	CmdSet
 	CmdGet
+	CmdDel
+	CmdJoin
 )
 
 type Status byte
@@ -42,6 +44,8 @@ type CommandSet struct {
 type CommandGet struct {
 	Key []byte
 }
+
+type CommandJoin struct{}
 
 func (s Status) String() string {
 	switch s {
@@ -168,6 +172,8 @@ func ParseCommand(r io.Reader) (any, error) {
 		return parseSetCommand(r)
 	case CmdGet:
 		return parseGetCommand(r)
+	case CmdJoin:
+		return &CommandJoin{}, nil
 	default:
 		return nil, errors.New("invalid command type")
 	}

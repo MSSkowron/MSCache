@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"log"
@@ -8,6 +10,7 @@ import (
 	"time"
 
 	"github.com/MSSkowron/mscache/cache"
+	"github.com/MSSkowron/mscache/client"
 	"github.com/MSSkowron/mscache/protocol"
 )
 
@@ -16,36 +19,59 @@ type Server struct {
 	leaderAddr string
 	isLeader   bool
 	cache      cache.Cacher
+	members    map[*client.Client]struct{}
 }
 
 func New(listenAddr, leaderAddr string, isLeader bool, c cache.Cacher) *Server {
-	server := &Server{
+	return &Server{
 		listenAddr: listenAddr,
 		leaderAddr: leaderAddr,
 		isLeader:   isLeader,
 		cache:      c,
+		members:    make(map[*client.Client]struct{}),
 	}
-
-	return server
 }
 
 func (s *Server) Run() error {
 	ln, err := net.Listen("tcp", s.listenAddr)
 	if err != nil {
-		return fmt.Errorf("[Server] Listen error: %s\n", err.Error())
+		return fmt.Errorf("listen error: %s\n", err.Error())
 	}
 
-	log.Printf("[Server] Server is running on port [%s]\n", s.listenAddr)
+	if !s.isLeader && len(s.leaderAddr) != 0 {
+		go func() {
+			if err := s.dialLeader(); err != nil {
+				log.Println(err)
+			}
+		}()
+	}
+
+	log.Printf("[Server] Server is running on port [%s] is leader [%d]\n", s.listenAddr, s.isLeader)
 
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			log.Printf("[Server] Accept error: %s\n", err.Error())
+			log.Printf("accept error: %s\n", err.Error())
 			continue
 		}
 
 		go s.handleConn(conn)
 	}
+}
+
+func (s *Server) dialLeader() error {
+	conn, err := net.Dial("tcp", s.leaderAddr)
+	if err != nil {
+		return fmt.Errorf("failed to dial leader [%s]", s.leaderAddr)
+	}
+
+	log.Printf("[Server] connected to leader [%s]\n", s.leaderAddr)
+
+	binary.Write(conn, binary.LittleEndian, protocol.CmdJoin)
+
+	s.handleConn(conn)
+
+	return nil
 }
 
 func (s *Server) handleConn(conn net.Conn) {
@@ -57,7 +83,7 @@ func (s *Server) handleConn(conn net.Conn) {
 		cmd, err := protocol.ParseCommand(conn)
 		if err != nil {
 			if err != io.EOF {
-				log.Printf("[Server] Parse command error: %s\n", err.Error())
+				log.Printf("parse command error: %s\n", err.Error())
 			}
 
 			break
@@ -75,12 +101,24 @@ func (s *Server) handleCommand(conn net.Conn, cmd any) {
 		s.handleSetCommand(conn, v)
 	case *protocol.CommandGet:
 		s.handleGetCommand(conn, v)
-	default:
-		log.Println("[Server] Invalid command type")
+	case *protocol.CommandJoin:
+		s.handleJoinCommand(conn, v)
 	}
 }
 
 func (s *Server) handleSetCommand(conn net.Conn, cmd *protocol.CommandSet) {
+	log.Printf("[Server] SET %s to %s\n", cmd.Key, cmd.Value)
+
+	go func() {
+		for member := range s.members {
+			if err := member.Set(context.Background(), cmd.Key, cmd.Value, cmd.TTL); err != nil {
+				log.Println("[Server] Forward to member error:", err)
+			}
+
+			log.Printf("[Server] Forwarding message to members")
+		}
+	}()
+
 	resp := protocol.ResponseSet{}
 
 	defer func() {
@@ -106,6 +144,8 @@ func (s *Server) handleSetCommand(conn net.Conn, cmd *protocol.CommandSet) {
 }
 
 func (s *Server) handleGetCommand(conn net.Conn, cmd *protocol.CommandGet) {
+	log.Printf("[Server] GET %s\n", cmd.Key)
+
 	resp := protocol.ResponseGet{}
 
 	defer func() {
@@ -130,6 +170,12 @@ func (s *Server) handleGetCommand(conn net.Conn, cmd *protocol.CommandGet) {
 
 	resp.Status = protocol.StatusOK
 	resp.Value = val
+}
+
+func (s *Server) handleJoinCommand(conn net.Conn, cmd *protocol.CommandJoin) {
+	log.Printf("[Server] Member just joined the cluster [%s]\n", conn.RemoteAddr())
+
+	s.members[client.NewFromConn(conn)] = struct{}{}
 }
 
 func (s *Server) respond(conn net.Conn, msg []byte) error {
