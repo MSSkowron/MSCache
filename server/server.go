@@ -181,9 +181,22 @@ func (s *Server) handleGetCommand(conn net.Conn, cmd *protocol.CommandGet) {
 }
 
 func (s *Server) handleDeleteCommand(conn net.Conn, cmd *protocol.CommandDelete) {
-	logger.InfoLogger.Printf("DELETE %s", cmd.Key)
+	msg := fmt.Sprintf("DELETE %s", cmd.Key)
+
+	logger.InfoLogger.Println(msg)
 
 	resp := protocol.ResponseDelete{}
+
+	go func() {
+		for member := range s.members {
+			if err := member.Delete(context.Background(), cmd.Key); err != nil {
+				logger.ErrorLogger.Printf("forward to member [%s] error [%s]", member, err.Error())
+				continue
+			}
+
+			logger.InfoLogger.Printf("forwarded message [%s] to member [%s]", msg, member)
+		}
+	}()
 
 	defer func() {
 		b, err := resp.Bytes()

@@ -89,31 +89,31 @@ func (c *Client) Get(ctx context.Context, key []byte) ([]byte, error) {
 	return resp.Value, nil
 }
 
-func (c *Client) Delete(ctx context.Context, key []byte) ([]byte, error) {
+func (c *Client) Delete(ctx context.Context, key []byte) error {
 	cmd := &protocol.CommandDelete{
 		Key: key,
 	}
 
 	b, err := cmd.Bytes()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	_, err = c.conn.Write(b)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	resp, err := protocol.ParseGetResponse(c.conn)
+	resp, err := protocol.ParseDeleteResponse(c.conn)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if resp.Status != protocol.StatusOK {
-		return nil, fmt.Errorf("server responded with non OK status [%s]", resp.Status)
+		return fmt.Errorf("server responded with non OK status [%s]", resp.Status)
 	}
 
-	return resp.Value, nil
+	return nil
 }
 
 func (c Client) String() string {

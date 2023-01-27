@@ -27,9 +27,16 @@ func SendStuff() {
 		)
 
 		if err := c.Set(context.TODO(), key, value, 1000000000000000); err != nil {
-			fmt.Println(err)
+			log.Fatalln(err)
 		}
 
 		time.Sleep(1 * time.Second)
+
+		val, err := c.Get(context.TODO(), key)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		fmt.Printf("GOT: %s", string(val))
 	}
 }
