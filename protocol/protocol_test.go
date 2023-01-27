@@ -51,3 +51,19 @@ func TestParseGetCommand(t *testing.T) {
 
 	assert.Equal(t, cmd, pcmd)
 }
+
+func TestParseDeleteCommand(t *testing.T) {
+	cmd := &CommandDelete{
+		Key: []byte("Foo"),
+	}
+
+	b, err := cmd.Bytes()
+	assert.Nil(t, err)
+
+	r := bytes.NewReader(b)
+
+	pcmd, err := ParseCommand(r)
+	assert.Nil(t, err)
+
+	assert.Equal(t, cmd, pcmd)
+}
