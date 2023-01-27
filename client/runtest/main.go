@@ -10,6 +10,10 @@ import (
 )
 
 func main() {
+	SendStuff()
+}
+
+func SendStuff() {
 	c, err := client.New(":3000")
 	if err != nil {
 		log.Fatalln(err)
