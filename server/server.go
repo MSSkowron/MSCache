@@ -104,6 +104,8 @@ func (s *Server) handleCommand(conn net.Conn, cmd any) {
 		s.handleSetCommand(conn, v)
 	case *protocol.CommandGet:
 		s.handleGetCommand(conn, v)
+	case *protocol.CommandDelete:
+		s.handleDeleteCommand(conn, v)
 	case *protocol.CommandJoin:
 		s.handleJoinCommand(conn, v)
 	}
@@ -176,6 +178,33 @@ func (s *Server) handleGetCommand(conn net.Conn, cmd *protocol.CommandGet) {
 
 	resp.Status = protocol.StatusOK
 	resp.Value = val
+}
+
+func (s *Server) handleDeleteCommand(conn net.Conn, cmd *protocol.CommandDelete) {
+	logger.InfoLogger.Printf("DELETE %s", cmd.Key)
+
+	resp := protocol.ResponseDelete{}
+
+	defer func() {
+		b, err := resp.Bytes()
+		if err != nil {
+			logger.ErrorLogger.Printf("error sending response to %s while handling DELETE command error: %s", conn.RemoteAddr(), err.Error())
+			return
+		}
+
+		if err := s.respond(conn, b); err != nil {
+			logger.ErrorLogger.Printf("error sending response to %s while handling DELETE command error: %s", conn.RemoteAddr(), err.Error())
+			return
+		}
+	}()
+
+	if err := s.cache.Delete(cmd.Key); err != nil {
+		resp.Status = protocol.StatusKeyNotFound
+		logger.ErrorLogger.Printf("handling DELETE command error: %s", err.Error())
+		return
+	}
+
+	resp.Status = protocol.StatusOK
 }
 
 func (s *Server) handleJoinCommand(conn net.Conn, cmd *protocol.CommandJoin) {
