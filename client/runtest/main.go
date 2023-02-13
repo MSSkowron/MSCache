@@ -10,10 +10,6 @@ import (
 )
 
 func main() {
-	SendStuff()
-}
-
-func SendStuff() {
 	c, err := client.New(":3000")
 	if err != nil {
 		log.Fatalln(err)
@@ -37,6 +33,6 @@ func SendStuff() {
 			log.Fatalln(err)
 		}
 
-		fmt.Printf("GOT: %s", string(val))
+		fmt.Printf("GOT: %s\n", string(val))
 	}
 }
