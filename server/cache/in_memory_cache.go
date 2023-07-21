@@ -46,7 +46,7 @@ func (c *InMemoryCache) Set(key Key, value Value) error {
 		return err
 	}
 
-	logger.InfoLogger.Printf("SET %s to %+v\n", key, value)
+	logger.CustomLogger.Info.Printf("SET %s to %+v\n", key, value)
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -71,7 +71,7 @@ func (c *InMemoryCache) Get(key Key) (Value, error) {
 		return value, err
 	}
 
-	logger.InfoLogger.Printf("GET %s", key)
+	logger.CustomLogger.Info.Printf("GET %s", key)
 
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -90,7 +90,7 @@ func (c *InMemoryCache) Delete(key Key) error {
 		return err
 	}
 
-	logger.InfoLogger.Printf("DELETE %s", key)
+	logger.CustomLogger.Info.Printf("DELETE %s", key)
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -106,7 +106,7 @@ func (c *InMemoryCache) Contains(key Key) (bool, error) {
 		return false, err
 	}
 
-	logger.InfoLogger.Printf("CONTAINS %s", key)
+	logger.CustomLogger.Info.Printf("CONTAINS %s", key)
 
 	c.mu.RLock()
 	defer c.mu.RUnlock()
