@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Leader",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/server/cmd/main.go",
+            "args": [
+                "--listenaddr",
+                ":5000"
+            ]
+        },
+        {
+            "name": "Debug Follower",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/server/cmd/main.go",
+            "args": [
+                "--listenaddr",
+                ":5001",
+                "--leaderaddr",
+                ":5000",
+            ]
+        }
+    ]
+}
