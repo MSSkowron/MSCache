@@ -2,9 +2,10 @@ package main
 
 import (
 	"flag"
+	"log"
 
-	"github.com/MSSkowron/mscache/cache"
-	"github.com/MSSkowron/mscache/server"
+	"github.com/MSSkowron/MSCache/server"
+	"github.com/MSSkowron/MSCache/server/cache"
 )
 
 func main() {
@@ -15,10 +16,10 @@ func main() {
 	flag.Parse()
 
 	if len(*listenAddrFlag) == 0 {
-		panic("listenaddr flag is required")
+		log.Fatalln("listen address is empty")
 	}
 
 	if err := server.New(*listenAddrFlag, *leaderAddrFlag, len(*leaderAddrFlag) == 0, cache.New()).Run(); err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 }

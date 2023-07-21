@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/MSSkowron/mscache/client"
+	"github.com/MSSkowron/MSCache/client"
 )
 
 func main() {
@@ -18,11 +18,11 @@ func main() {
 
 	for i := 0; i < 10; i++ {
 		var (
-			key   = []byte(fmt.Sprintf("key_%d", i))
-			value = []byte(fmt.Sprintf("value_%d", i))
+			key   = []byte(fmt.Sprintf("key:%d", i))
+			value = []byte(fmt.Sprintf("value:%d", i))
 		)
 
-		if err := c.Set(context.TODO(), key, value, 1000000000000000); err != nil {
+		if err := c.Set(context.TODO(), key, value, 100); err != nil {
 			log.Fatalln(err)
 		}
 

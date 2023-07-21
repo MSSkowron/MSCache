@@ -9,10 +9,10 @@ import (
 	"net"
 	"time"
 
-	"github.com/MSSkowron/mscache/cache"
-	"github.com/MSSkowron/mscache/client"
-	"github.com/MSSkowron/mscache/logger"
-	"github.com/MSSkowron/mscache/protocol"
+	"github.com/MSSkowron/MSCache/client"
+	"github.com/MSSkowron/MSCache/server/cache"
+	"github.com/MSSkowron/MSCache/server/logger"
+	"github.com/MSSkowron/MSCache/server/protocol"
 )
 
 type Server struct {
@@ -20,10 +20,10 @@ type Server struct {
 	leaderAddr string
 	isLeader   bool
 	members    map[*client.Client]struct{}
-	cache      cache.Cacher
+	cache      cache.Cache
 }
 
-func New(listenAddr, leaderAddr string, isLeader bool, c cache.Cacher) *Server {
+func New(listenAddr, leaderAddr string, isLeader bool, c cache.Cache) *Server {
 	return &Server{
 		listenAddr: listenAddr,
 		leaderAddr: leaderAddr,
@@ -39,10 +39,14 @@ func (s *Server) Run() error {
 		return fmt.Errorf("listen error: %s", err.Error())
 	}
 
-	if !s.isLeader && len(s.leaderAddr) != 0 {
+	if !s.isLeader {
+		if len(s.leaderAddr) == 0 {
+			return fmt.Errorf("leader address is empty")
+		}
+
 		go func() {
 			if err := s.dialLeader(); err != nil {
-				log.Println(err)
+				log.Fatalln(err)
 			}
 		}()
 	}
@@ -142,7 +146,10 @@ func (s *Server) handleSetCommand(conn net.Conn, cmd *protocol.CommandSet) {
 		}
 	}()
 
-	if err := s.cache.Set(cmd.Key, cmd.Value, time.Duration(cmd.TTL)); err != nil {
+	if err := s.cache.Set(cache.Key(cmd.Key), cache.Value{
+		Value: cmd.Value,
+		TTL:   time.Second * time.Duration(cmd.TTL),
+	}); err != nil {
 		resp.Status = protocol.StatusError
 		logger.InfoLogger.Printf("handling SET command error: %s", err.Error())
 		return
@@ -169,7 +176,7 @@ func (s *Server) handleGetCommand(conn net.Conn, cmd *protocol.CommandGet) {
 		}
 	}()
 
-	val, err := s.cache.Get(cmd.Key)
+	val, err := s.cache.Get(cache.Key(cmd.Key))
 	if err != nil {
 		resp.Status = protocol.StatusKeyNotFound
 		logger.ErrorLogger.Printf("handling GET command error: %s", err.Error())
@@ -177,7 +184,7 @@ func (s *Server) handleGetCommand(conn net.Conn, cmd *protocol.CommandGet) {
 	}
 
 	resp.Status = protocol.StatusOK
-	resp.Value = val
+	resp.Value = val.Value
 }
 
 func (s *Server) handleDeleteCommand(conn net.Conn, cmd *protocol.CommandDelete) {
@@ -211,7 +218,7 @@ func (s *Server) handleDeleteCommand(conn net.Conn, cmd *protocol.CommandDelete)
 		}
 	}()
 
-	if err := s.cache.Delete(cmd.Key); err != nil {
+	if err := s.cache.Delete(cache.Key(cmd.Key)); err != nil {
 		resp.Status = protocol.StatusKeyNotFound
 		logger.ErrorLogger.Printf("handling DELETE command error: %s", err.Error())
 		return

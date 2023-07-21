@@ -1,40 +1,53 @@
-# mscache
+# MSCache - Distributed Key-Value Cache
 
 ## About the project
 
-mscache is a distributed key-value cache written in Go. Nodes communicate with each other using TCP protocol.
+MSCache is a distributed key-value cache implemented in Go. It enables a distributed caching system where server nodes communicate with each other using the TCP protocol.
 
-## How to use
+## Technologies
 
-In order to run a new leader node we can use _runleader_ build in _Makefile_. \
-Using flag --listenaddr we can specify an address on which the node will be listening to incoming commands. Port 3000 is the default one. We can change it if we want. \
-Use this command to start the leader node using _Makefile_:
+- Go 1.20
 
-```
-make runleader
-```
+## Requirements
+Make sure you have Go installed on your system before running the application.
 
-Use this command to start the leader node without using _Makefile_:
+## Installation
+Clone the repository:
 
-```
-go build -o bin/mscache
-./bin/mscache --listenaddr :3000
-```
+git clone https://github.com/MSSkowron/MSCache
 
-In order to run a new follower node we can use _runfollower_ build in _Makefile_. \
-Using flag --listenaddr we can specify an addres on which the node will be listening to commands. Port 4000 is the default one. We can change it if we want. \
-Using flag --leaderaddr we can specify a leader's address. Port 3000 is the default one.\
-Use this command to start the leader node using _Makefile_:
+## How to run
+Navigate to the project directory:
 
 ```
-make runfollower
+cd MSCache
 ```
 
-Use this command to start the leader node without using _Makefile_:
+### Running the Server
 
-```
-go build -o bin/mscache
-./bin/mscache --listenaddr :4000 --leaderaddr :3000
-```
+- Starting a Leader Node
+    To start a leader node, run the following command:
+    ```
+    go run ./server/cmd/main.go --listenaddr <port>
+    ```
 
-Each node needs to have a different listen address.
+    For example:
+    ```
+    go run ./server/cmd/main.go --listenaddr :5000
+    ```
+
+- Starting a Follower Node
+    To start a follower node, use the following command:
+    ```
+    go run ./server/cmd/main.go --listenaddr <port> --leaderaddr <port>
+    ```
+
+    For example:
+    ```
+    go run ./server/cmd/main.go --listenaddr :5001 --leaderaddr :5000
+    ```
+
+**Note**: Each node needs to have a different listen address.
+
+## How to Use It
+To interact with the server, you can utilize the Client structure defined in ./client/client.go. This structure provides the necessary methods to communicate with the cache server.

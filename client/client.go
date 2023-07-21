@@ -8,10 +8,12 @@ import (
 	"github.com/MSSkowron/mscache/protocol"
 )
 
+// Client is a client for the cache server.
 type Client struct {
 	conn net.Conn
 }
 
+// New creates a new client.
 func New(endpoint string) (*Client, error) {
 	conn, err := net.Dial("tcp", endpoint)
 	if err != nil {
@@ -23,16 +25,20 @@ func New(endpoint string) (*Client, error) {
 	}, nil
 }
 
+// NewFromConn creates a new client from an existing connection.
 func NewFromConn(conn net.Conn) *Client {
 	return &Client{
 		conn: conn,
 	}
 }
 
+// Close closes the connection.
 func (c *Client) Close() error {
 	return c.conn.Close()
 }
 
+// Set sends a set command to the server.
+// ttl is in seconds.
 func (c *Client) Set(ctx context.Context, key, value []byte, ttl int) error {
 	cmd := &protocol.CommandSet{
 		Key:   key,
@@ -62,6 +68,7 @@ func (c *Client) Set(ctx context.Context, key, value []byte, ttl int) error {
 	return nil
 }
 
+// Get sends a get command to the server.
 func (c *Client) Get(ctx context.Context, key []byte) ([]byte, error) {
 	cmd := &protocol.CommandGet{
 		Key: key,
@@ -89,6 +96,7 @@ func (c *Client) Get(ctx context.Context, key []byte) ([]byte, error) {
 	return resp.Value, nil
 }
 
+// Delete sends a delete command to the server.
 func (c *Client) Delete(ctx context.Context, key []byte) error {
 	cmd := &protocol.CommandDelete{
 		Key: key,
@@ -116,6 +124,7 @@ func (c *Client) Delete(ctx context.Context, key []byte) error {
 	return nil
 }
 
+// String returns the string representation of the client which is the client's address.
 func (c Client) String() string {
 	return c.conn.RemoteAddr().String()
 }
