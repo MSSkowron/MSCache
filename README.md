@@ -2,7 +2,7 @@
 
 ## About the project
 
-MSCache is a distributed key-value cache implemented in Go. It enables a distributed caching system where server nodes communicate with each other using the TCP protocol.
+MSCache is a distributed key-value cache implemented in Go, facilitating a distributed caching system where server nodes communicate with each other using the TCP protocol. The client can connect to any node in the cluster using TCP for interactions.
 
 ## Technologies
 
@@ -28,23 +28,23 @@ cd MSCache
 - Starting a Leader Node
     To start a leader node, run the following command:
     ```
-    go run ./server/cmd/main.go --listenaddr <port>
+    go run ./server/cmd/main.go --listenaddr <address>
     ```
 
     For example:
     ```
-    go run ./server/cmd/main.go --listenaddr :5000
+    go run ./server/cmd/main.go --listenaddr 127.0.0.1:5000
     ```
 
 - Starting a Follower Node
     To start a follower node, use the following command:
     ```
-    go run ./server/cmd/main.go --listenaddr <port> --leaderaddr <port>
+    go run ./server/cmd/main.go --listenaddr <address> --leaderaddr <address>
     ```
 
     For example:
     ```
-    go run ./server/cmd/main.go --listenaddr :5001 --leaderaddr :5000
+    go run ./server/cmd/main.go --listenaddr 127.0.0.1:5001 --leaderaddr 127.0.0.1:5000
     ```
 
 **Note**: Each node needs to have a different listen address.
