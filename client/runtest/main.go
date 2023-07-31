@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"time"
@@ -10,7 +11,16 @@ import (
 )
 
 func main() {
-	c, err := client.New(":3000")
+	var (
+		serverAddrFlag = flag.String("serveraddr", "", "listen address of the server")
+	)
+	flag.Parse()
+
+	if len(*serverAddrFlag) == 0 {
+		log.Fatalln("server address is empty")
+	}
+
+	c, err := client.New(*serverAddrFlag)
 	if err != nil {
 		log.Fatalln(err)
 	}

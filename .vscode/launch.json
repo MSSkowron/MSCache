@@ -24,6 +24,17 @@
                 "--leaderaddr",
                 ":5000",
             ]
+        },
+        {
+            "name": "Debug Client",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/client/runtest/main.go",
+            "args": [
+                "--serveraddr",
+                ":5001",
+            ]
         }
     ]
 }
