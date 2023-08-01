@@ -25,16 +25,37 @@ func New(endpoint string) (*Client, error) {
 	}, nil
 }
 
-// NewFromConn creates a new client from an existing connection.
-func NewFromConn(conn net.Conn) *Client {
-	return &Client{
-		conn: conn,
-	}
-}
-
 // Close closes the connection.
 func (c *Client) Close() error {
 	return c.conn.Close()
+}
+
+// Get sends a get command to the server.
+func (c *Client) Get(ctx context.Context, key []byte) ([]byte, error) {
+	cmd := &protocol.CommandGet{
+		Key: key,
+	}
+
+	b, err := cmd.Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = c.conn.Write(b)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := protocol.ParseGetResponse(c.conn)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Status != protocol.StatusOK {
+		return nil, fmt.Errorf("server responded with non OK status [%s]", resp.Status)
+	}
+
+	return resp.Value, nil
 }
 
 // Set sends a set command to the server.
@@ -66,34 +87,6 @@ func (c *Client) Set(ctx context.Context, key, value []byte, ttl int) error {
 	}
 
 	return nil
-}
-
-// Get sends a get command to the server.
-func (c *Client) Get(ctx context.Context, key []byte) ([]byte, error) {
-	cmd := &protocol.CommandGet{
-		Key: key,
-	}
-
-	b, err := cmd.Bytes()
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = c.conn.Write(b)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := protocol.ParseGetResponse(c.conn)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.Status != protocol.StatusOK {
-		return nil, fmt.Errorf("server responded with non OK status [%s]", resp.Status)
-	}
-
-	return resp.Value, nil
 }
 
 // Delete sends a delete command to the server.
