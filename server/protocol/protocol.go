@@ -7,6 +7,7 @@ import (
 	"io"
 )
 
+// Command represents the different types of commands.
 type Command byte
 
 const (
@@ -17,6 +18,7 @@ const (
 	CmdJoin
 )
 
+// Status represents the different status types for responses.
 type Status byte
 
 const (
@@ -26,33 +28,40 @@ const (
 	StatusKeyNotFound
 )
 
+// ResponseSet represents the response for the Set command.
 type ResponseSet struct {
 	Status Status
 }
 
+// ResponseGet represents the response for the Get command.
 type ResponseGet struct {
 	Status Status
 	Value  []byte
 }
 
+// ResponseDelete represents the response for the Delete command.
 type ResponseDelete struct {
 	Status Status
 }
 
+// CommandSet represents the Set command.
 type CommandSet struct {
 	Key   []byte
 	Value []byte
 	TTL   int
 }
 
+// CommandGet represents the Get command.
 type CommandGet struct {
 	Key []byte
 }
 
+// CommandDelete represents the Delete command.
 type CommandDelete struct {
 	Key []byte
 }
 
+// CommandJoin represents the Join command.
 type CommandJoin struct{}
 
 func (s Status) String() string {
@@ -83,10 +92,10 @@ func (r *ResponseGet) Bytes() ([]byte, error) {
 		return nil, err
 	}
 
-	valueLen := int32(len(r.Value))
-	if err := binary.Write(buf, binary.LittleEndian, valueLen); err != nil {
+	if err := binary.Write(buf, binary.LittleEndian, int32(len(r.Value))); err != nil {
 		return nil, err
 	}
+
 	if err := binary.Write(buf, binary.LittleEndian, r.Value); err != nil {
 		return nil, err
 	}
