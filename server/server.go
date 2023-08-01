@@ -17,7 +17,7 @@ var (
 	ErrEmptyLeaderAddress = errors.New("leader address is empty")
 )
 
-type ServerNode struct {
+type Node struct {
 	listener      net.Listener
 	listenAddress string
 	leaderAddress string
@@ -27,8 +27,8 @@ type ServerNode struct {
 	cache         cache.Cache
 }
 
-func New(listenAddress, leaderAddress string, isLeader bool, c cache.Cache) *ServerNode {
-	return &ServerNode{
+func New(listenAddress, leaderAddress string, isLeader bool, c cache.Cache) *Node {
+	return &Node{
 		listenAddress: listenAddress,
 		leaderAddress: leaderAddress,
 		isLeader:      isLeader,
@@ -36,7 +36,7 @@ func New(listenAddress, leaderAddress string, isLeader bool, c cache.Cache) *Ser
 	}
 }
 
-func (s *ServerNode) Run() error {
+func (s *Node) Run() error {
 	ln, err := net.Listen("tcp", s.listenAddress)
 	if err != nil {
 		return fmt.Errorf("running tcp listener error: %s", err.Error())
@@ -74,11 +74,11 @@ func (s *ServerNode) Run() error {
 	}
 }
 
-func (s *ServerNode) Close() error {
+func (s *Node) Close() error {
 	return s.listener.Close()
 }
 
-func (s *ServerNode) dialLeader() error {
+func (s *Node) dialLeader() error {
 	conn, err := net.Dial("tcp", s.leaderAddress)
 	if err != nil {
 		return err
@@ -95,7 +95,7 @@ func (s *ServerNode) dialLeader() error {
 	return nil
 }
 
-func (s *ServerNode) handleConnection(conn net.Conn) {
+func (s *Node) handleConnection(conn net.Conn) {
 	logger.CustomLogger.Info.Printf("Opened connection with [%s]", conn.RemoteAddr())
 
 	defer func() {
@@ -125,7 +125,7 @@ func (s *ServerNode) handleConnection(conn net.Conn) {
 	}
 }
 
-func (s *ServerNode) handleCommand(conn net.Conn, cmd any) {
+func (s *Node) handleCommand(conn net.Conn, cmd any) {
 	switch v := cmd.(type) {
 	case *protocol.CommandGet:
 		s.handleGetCommand(conn, v)
@@ -178,7 +178,7 @@ func (s *ServerNode) handleCommand(conn net.Conn, cmd any) {
 	}
 }
 
-func (s *ServerNode) handleGetCommand(conn net.Conn, cmd *protocol.CommandGet) {
+func (s *Node) handleGetCommand(conn net.Conn, cmd *protocol.CommandGet) {
 	var (
 		key      = cache.Key(cmd.Key)
 		response protocol.ResponseGet
@@ -210,7 +210,7 @@ func (s *ServerNode) handleGetCommand(conn net.Conn, cmd *protocol.CommandGet) {
 	response.Value = val.Value
 }
 
-func (s *ServerNode) handleSetCommand(conn net.Conn, cmd *protocol.CommandSet) {
+func (s *Node) handleSetCommand(conn net.Conn, cmd *protocol.CommandSet) {
 	var (
 		key   = cache.Key(cmd.Key)
 		value = string(cache.Value{
@@ -269,7 +269,7 @@ func (s *ServerNode) handleSetCommand(conn net.Conn, cmd *protocol.CommandSet) {
 	}
 }
 
-func (s *ServerNode) handleDeleteCommand(conn net.Conn, cmd *protocol.CommandDelete) {
+func (s *Node) handleDeleteCommand(conn net.Conn, cmd *protocol.CommandDelete) {
 	var (
 		key      = cache.Key(cmd.Key)
 		response protocol.ResponseDelete
@@ -320,13 +320,13 @@ func (s *ServerNode) handleDeleteCommand(conn net.Conn, cmd *protocol.CommandDel
 	}
 }
 
-func (s *ServerNode) handleJoinCommand(conn net.Conn, cmd *protocol.CommandJoin) {
+func (s *Node) handleJoinCommand(conn net.Conn, cmd *protocol.CommandJoin) {
 	logger.CustomLogger.Info.Printf("New member [%s] joined the cluster", conn.RemoteAddr())
 
 	s.followers[conn] = struct{}{}
 }
 
-func (s *ServerNode) respond(conn net.Conn, msg []byte) error {
+func (s *Node) respond(conn net.Conn, msg []byte) error {
 	_, err := conn.Write(msg)
 	return err
 }

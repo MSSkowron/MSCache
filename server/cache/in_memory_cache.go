@@ -1,24 +1,8 @@
 package cache
 
 import (
-	"errors"
 	"sync"
 	"time"
-
-	"github.com/MSSkowron/MSCache/server/logger"
-)
-
-var (
-	// ErrKeyIsEmpty is returned when the key is empty.
-	ErrKeyIsEmpty = errors.New("key cannot be empty")
-	// ErrValueIsNil is returned when the value is nil.
-	ErrValueIsNil = errors.New("value cannot be nil")
-	// ErrValueIsEmpty is returned when the value is empty.
-	ErrValueIsEmpty = errors.New("value cannot be empty")
-	// ErrInvalidTTL is returned when the TTL is less than or equal to 0.
-	ErrInvalidTTL = errors.New("ttl must be greater than 0")
-	// ErrKeyNotFound is returned when the key is not found in the cache.
-	ErrKeyNotFound = errors.New("key not found")
 )
 
 // InMemoryCache is a struct that represents a key-value In-Memory Cache.
@@ -46,8 +30,6 @@ func (c *InMemoryCache) Set(key Key, value Value) error {
 		return err
 	}
 
-	logger.CustomLogger.Info.Printf("SET %s to %+v\n", key, value)
-
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -71,8 +53,6 @@ func (c *InMemoryCache) Get(key Key) (Value, error) {
 		return value, err
 	}
 
-	logger.CustomLogger.Info.Printf("GET %s", key)
-
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -90,8 +70,6 @@ func (c *InMemoryCache) Delete(key Key) error {
 		return err
 	}
 
-	logger.CustomLogger.Info.Printf("DELETE %s", key)
-
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -105,8 +83,6 @@ func (c *InMemoryCache) Contains(key Key) (bool, error) {
 	if err := c.validateKey(key); err != nil {
 		return false, err
 	}
-
-	logger.CustomLogger.Info.Printf("CONTAINS %s", key)
 
 	c.mu.RLock()
 	defer c.mu.RUnlock()
