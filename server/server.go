@@ -118,9 +118,49 @@ func (s *ServerNode) handleCommand(conn net.Conn, cmd any) {
 	case *protocol.CommandGet:
 		s.handleGetCommand(conn, v)
 	case *protocol.CommandSet:
-		s.handleSetCommand(conn, v)
+		if s.isLeader || (!s.isLeader && conn.RemoteAddr() == s.leader.RemoteAddr()) {
+			s.handleSetCommand(conn, v)
+			return
+		}
+
+		response := protocol.ResponseSet{
+			Status: protocol.StatusNotLeader,
+		}
+
+		b, err := response.Bytes()
+		if err != nil {
+			logger.CustomLogger.Error.Printf("error sending response to %s while handling GET command error: %s", conn.RemoteAddr(), err.Error())
+			return
+		}
+
+		if err := s.respond(conn, b); err != nil {
+			logger.CustomLogger.Error.Printf("error sending response to %s while handling GET command error: %s", conn.RemoteAddr(), err.Error())
+			return
+		}
+
+		return
 	case *protocol.CommandDelete:
-		s.handleDeleteCommand(conn, v)
+		if s.isLeader || (!s.isLeader && conn.RemoteAddr() == s.leader.RemoteAddr()) {
+			s.handleDeleteCommand(conn, v)
+			return
+		}
+
+		response := protocol.ResponseDelete{
+			Status: protocol.StatusNotLeader,
+		}
+
+		b, err := response.Bytes()
+		if err != nil {
+			logger.CustomLogger.Error.Printf("error sending response to %s while handling GET command error: %s", conn.RemoteAddr(), err.Error())
+			return
+		}
+
+		if err := s.respond(conn, b); err != nil {
+			logger.CustomLogger.Error.Printf("error sending response to %s while handling GET command error: %s", conn.RemoteAddr(), err.Error())
+			return
+		}
+
+		return
 	case *protocol.CommandJoin:
 		s.handleJoinCommand(conn, v)
 	}

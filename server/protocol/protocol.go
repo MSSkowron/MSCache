@@ -26,6 +26,7 @@ const (
 	StatusOK
 	StatusError
 	StatusKeyNotFound
+	StatusNotLeader
 )
 
 // ResponseSet represents the response for the Set command.
@@ -72,6 +73,8 @@ func (s Status) String() string {
 		return "ERROR"
 	case StatusKeyNotFound:
 		return "NOT FOUND"
+	case StatusNotLeader:
+		return "NOT LEADER"
 	default:
 		return "NONE"
 	}
