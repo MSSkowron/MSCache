@@ -26,7 +26,7 @@ func main() {
 	}
 	defer c.Close()
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 5; i++ {
 		var (
 			key   = []byte(fmt.Sprintf("key:%d", i))
 			value = []byte(fmt.Sprintf("value:%d", i))

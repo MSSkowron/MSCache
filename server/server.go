@@ -2,10 +2,10 @@ package server
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
-	"io"
-	"log"
 	"net"
+	"os"
 	"time"
 
 	"github.com/MSSkowron/MSCache/server/cache"
@@ -13,7 +13,12 @@ import (
 	"github.com/MSSkowron/MSCache/server/protocol"
 )
 
+var (
+	ErrEmptyLeaderAddress = errors.New("leader address is empty")
+)
+
 type ServerNode struct {
+	listener      net.Listener
 	listenAddress string
 	leaderAddress string
 	isLeader      bool
@@ -27,8 +32,6 @@ func New(listenAddress, leaderAddress string, isLeader bool, c cache.Cache) *Ser
 		listenAddress: listenAddress,
 		leaderAddress: leaderAddress,
 		isLeader:      isLeader,
-		followers:     nil,
-		leader:        nil,
 		cache:         c,
 	}
 }
@@ -36,32 +39,34 @@ func New(listenAddress, leaderAddress string, isLeader bool, c cache.Cache) *Ser
 func (s *ServerNode) Run() error {
 	ln, err := net.Listen("tcp", s.listenAddress)
 	if err != nil {
-		return fmt.Errorf("listen error: %s", err.Error())
+		return fmt.Errorf("running tcp listener error: %s", err.Error())
 	}
 	defer func() {
-		if err := ln.Close(); err != nil {
-			log.Fatalf("error while closing net listener: %s", err.Error())
-		}
+		_ = ln.Close()
 	}()
+
+	s.listener = ln
 
 	if s.isLeader {
 		s.followers = make(map[net.Conn]struct{})
 	} else {
 		if len(s.leaderAddress) == 0 {
-			return fmt.Errorf("leader address is empty")
+			return ErrEmptyLeaderAddress
 		}
 
 		if err := s.dialLeader(); err != nil {
-			return err
+			return fmt.Errorf("connecting to leader %s error: %s", s.leaderAddress, err.Error())
 		}
+
+		logger.CustomLogger.Info.Printf("Connected to leader [%s]", s.leaderAddress)
 	}
 
-	logger.CustomLogger.Info.Printf("server is running on port [%s], is leader [%t]", s.listenAddress, s.isLeader)
+	logger.CustomLogger.Info.Printf("Server is running on [%s], is leader [%t]", s.listenAddress, s.isLeader)
 
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			logger.CustomLogger.Error.Printf("accept error: %s", err.Error())
+			logger.CustomLogger.Error.Printf("accept a new connection error: %s", err.Error())
 			continue
 		}
 
@@ -69,13 +74,15 @@ func (s *ServerNode) Run() error {
 	}
 }
 
+func (s *ServerNode) Close() error {
+	return s.listener.Close()
+}
+
 func (s *ServerNode) dialLeader() error {
 	conn, err := net.Dial("tcp", s.leaderAddress)
 	if err != nil {
-		return fmt.Errorf("failed to dial leader [%s]", s.leaderAddress)
+		return err
 	}
-
-	logger.CustomLogger.Info.Printf("connected to leader [%s]", s.leaderAddress)
 
 	if err := binary.Write(conn, binary.LittleEndian, protocol.CmdJoin); err != nil {
 		return err
@@ -89,28 +96,33 @@ func (s *ServerNode) dialLeader() error {
 }
 
 func (s *ServerNode) handleConnection(conn net.Conn) {
-	defer conn.Close()
+	logger.CustomLogger.Info.Printf("Opened connection with [%s]", conn.RemoteAddr())
 
-	logger.CustomLogger.Info.Printf("new connection made: %s", conn.RemoteAddr())
+	defer func() {
+		_ = conn.Close()
+
+		if s.isLeader {
+			delete(s.followers, conn)
+		}
+	}()
 
 	for {
 		cmd, err := protocol.ParseCommand(conn)
 		if err != nil {
-			if err != io.EOF {
-				logger.CustomLogger.Error.Printf("parse command error: %s", err.Error())
-			}
-
-			if s.isLeader {
-				delete(s.followers, conn)
-			}
-
 			break
 		}
 
 		go s.handleCommand(conn, cmd)
 	}
 
-	logger.CustomLogger.Info.Printf("connection closed: %s", conn.RemoteAddr())
+	logger.CustomLogger.Info.Printf("Closed connection with [%s]", conn.RemoteAddr())
+
+	if !s.isLeader && conn.RemoteAddr() == s.leader.RemoteAddr() {
+		logger.CustomLogger.Error.Printf("Lost connection with leader [%s]", s.leader.RemoteAddr())
+
+		_ = s.Close()
+		os.Exit(0)
+	}
 }
 
 func (s *ServerNode) handleCommand(conn net.Conn, cmd any) {
@@ -129,12 +141,12 @@ func (s *ServerNode) handleCommand(conn net.Conn, cmd any) {
 
 		b, err := response.Bytes()
 		if err != nil {
-			logger.CustomLogger.Error.Printf("error sending response to %s while handling GET command error: %s", conn.RemoteAddr(), err.Error())
+			logger.CustomLogger.Error.Printf("sending response to %s while handling GET command error: %s", conn.RemoteAddr(), err.Error())
 			return
 		}
 
 		if err := s.respond(conn, b); err != nil {
-			logger.CustomLogger.Error.Printf("error sending response to %s while handling GET command error: %s", conn.RemoteAddr(), err.Error())
+			logger.CustomLogger.Error.Printf("sending response to %s while handling GET command error: %s", conn.RemoteAddr(), err.Error())
 			return
 		}
 
@@ -151,12 +163,12 @@ func (s *ServerNode) handleCommand(conn net.Conn, cmd any) {
 
 		b, err := response.Bytes()
 		if err != nil {
-			logger.CustomLogger.Error.Printf("error sending response to %s while handling GET command error: %s", conn.RemoteAddr(), err.Error())
+			logger.CustomLogger.Error.Printf("sending response to %s while handling GET command error: %s", conn.RemoteAddr(), err.Error())
 			return
 		}
 
 		if err := s.respond(conn, b); err != nil {
-			logger.CustomLogger.Error.Printf("error sending response to %s while handling GET command error: %s", conn.RemoteAddr(), err.Error())
+			logger.CustomLogger.Error.Printf("sending response to %s while handling GET command error: %s", conn.RemoteAddr(), err.Error())
 			return
 		}
 
@@ -167,27 +179,30 @@ func (s *ServerNode) handleCommand(conn net.Conn, cmd any) {
 }
 
 func (s *ServerNode) handleGetCommand(conn net.Conn, cmd *protocol.CommandGet) {
-	logger.CustomLogger.Info.Printf("GET %s", cmd.Key)
+	var (
+		key      = cache.Key(cmd.Key)
+		response protocol.ResponseGet
+	)
 
-	var response protocol.ResponseGet
+	logger.CustomLogger.Info.Printf("Received GET key=%s from [%s]", key, conn.RemoteAddr())
 
 	defer func() {
 		b, err := response.Bytes()
 		if err != nil {
-			logger.CustomLogger.Error.Printf("error sending response to %s while handling GET command error: %s", conn.RemoteAddr(), err.Error())
+			logger.CustomLogger.Error.Printf("sending response to %s while handling GET command error: %s", conn.RemoteAddr(), err.Error())
 			return
 		}
 
 		if err := s.respond(conn, b); err != nil {
-			logger.CustomLogger.Error.Printf("error sending response to %s while handling GET command error: %s", conn.RemoteAddr(), err.Error())
+			logger.CustomLogger.Error.Printf("sending response to %s while handling GET command error: %s", conn.RemoteAddr(), err.Error())
 			return
 		}
 	}()
 
-	val, err := s.cache.Get(cache.Key(cmd.Key))
+	val, err := s.cache.Get(key)
 	if err != nil {
+		logger.CustomLogger.Error.Printf("getting key %s from cache error: %s", key, err.Error())
 		response.Status = protocol.StatusKeyNotFound
-		logger.CustomLogger.Error.Printf("handling GET command error: %s", err.Error())
 		return
 	}
 
@@ -196,31 +211,35 @@ func (s *ServerNode) handleGetCommand(conn net.Conn, cmd *protocol.CommandGet) {
 }
 
 func (s *ServerNode) handleSetCommand(conn net.Conn, cmd *protocol.CommandSet) {
-	msg := fmt.Sprintf("SET %s to %s", cmd.Key, cmd.Value)
+	var (
+		key   = cache.Key(cmd.Key)
+		value = string(cache.Value{
+			Value: cmd.Value,
+		}.Value)
+		response protocol.ResponseSet
+	)
 
-	logger.CustomLogger.Info.Println(msg)
-
-	var response protocol.ResponseSet
+	logger.CustomLogger.Info.Printf("Received SET key=%s value=%s from [%s]", key, value, conn.RemoteAddr())
 
 	defer func() {
 		b, err := response.Bytes()
 		if err != nil {
-			logger.CustomLogger.Error.Printf("error sending response to %s while handling SET command error: %s", conn.RemoteAddr(), err.Error())
+			logger.CustomLogger.Error.Printf("sending response to %s while handling SET command error: %s", conn.RemoteAddr(), err.Error())
 			return
 		}
 
 		if err := s.respond(conn, b); err != nil {
-			logger.CustomLogger.Error.Printf("esending response to %s while handling SET command error: %s", conn.RemoteAddr(), err.Error())
+			logger.CustomLogger.Error.Printf("sending response to %s while handling SET command error: %s", conn.RemoteAddr(), err.Error())
 			return
 		}
 	}()
 
-	if err := s.cache.Set(cache.Key(cmd.Key), cache.Value{
+	if err := s.cache.Set(key, cache.Value{
 		Value: cmd.Value,
 		TTL:   time.Second * time.Duration(cmd.TTL),
 	}); err != nil {
+		logger.CustomLogger.Error.Printf("setting key %s to value %s in cache error: %s", key, value, err.Error())
 		response.Status = protocol.StatusError
-		logger.CustomLogger.Info.Printf("handling SET command error: %s", err.Error())
 		return
 	}
 
@@ -243,7 +262,7 @@ func (s *ServerNode) handleSetCommand(conn net.Conn, cmd *protocol.CommandSet) {
 			for follower := range s.followers {
 				_, err = follower.Write(b)
 				if err != nil {
-					logger.CustomLogger.Error.Printf("propagating SET command to member [%s] error: %s", follower, err.Error())
+					logger.CustomLogger.Error.Printf("propagating SET command to member %s error: %s", follower.RemoteAddr(), err.Error())
 				}
 			}
 		}()
@@ -251,32 +270,33 @@ func (s *ServerNode) handleSetCommand(conn net.Conn, cmd *protocol.CommandSet) {
 }
 
 func (s *ServerNode) handleDeleteCommand(conn net.Conn, cmd *protocol.CommandDelete) {
-	msg := fmt.Sprintf("DELETE %s", cmd.Key)
+	var (
+		key      = cache.Key(cmd.Key)
+		response protocol.ResponseDelete
+	)
 
-	logger.CustomLogger.Info.Println(msg)
-
-	resp := protocol.ResponseDelete{}
+	logger.CustomLogger.Info.Printf("Received DELETE key=%s from [%s]", key, conn.RemoteAddr())
 
 	defer func() {
-		b, err := resp.Bytes()
+		b, err := response.Bytes()
 		if err != nil {
-			logger.CustomLogger.Error.Printf("error sending response to %s while handling DELETE command error: %s", conn.RemoteAddr(), err.Error())
+			logger.CustomLogger.Error.Printf("sending response to %s while handling DELETE command error: %s", conn.RemoteAddr(), err.Error())
 			return
 		}
 
 		if err := s.respond(conn, b); err != nil {
-			logger.CustomLogger.Error.Printf("error sending response to %s while handling DELETE command error: %s", conn.RemoteAddr(), err.Error())
+			logger.CustomLogger.Error.Printf("sending response to %s while handling DELETE command error: %s", conn.RemoteAddr(), err.Error())
 			return
 		}
 	}()
 
 	if err := s.cache.Delete(cache.Key(cmd.Key)); err != nil {
-		resp.Status = protocol.StatusKeyNotFound
-		logger.CustomLogger.Error.Printf("handling DELETE command error: %s", err.Error())
+		logger.CustomLogger.Error.Printf("deleting key %s from cache error: %s", key, err.Error())
+		response.Status = protocol.StatusKeyNotFound
 		return
 	}
 
-	resp.Status = protocol.StatusOK
+	response.Status = protocol.StatusOK
 
 	if s.isLeader {
 		go func() {
@@ -293,7 +313,7 @@ func (s *ServerNode) handleDeleteCommand(conn net.Conn, cmd *protocol.CommandDel
 			for follower := range s.followers {
 				_, err = follower.Write(b)
 				if err != nil {
-					logger.CustomLogger.Error.Printf("propagating DELETE command to member [%s] error: %s", follower, err.Error())
+					logger.CustomLogger.Error.Printf("propagating DELETE command to member %s error: %s", follower, err.Error())
 				}
 			}
 		}()
@@ -301,7 +321,7 @@ func (s *ServerNode) handleDeleteCommand(conn net.Conn, cmd *protocol.CommandDel
 }
 
 func (s *ServerNode) handleJoinCommand(conn net.Conn, cmd *protocol.CommandJoin) {
-	logger.CustomLogger.Info.Printf("member just joined the cluster [%s]", conn.RemoteAddr())
+	logger.CustomLogger.Info.Printf("New member [%s] joined the cluster", conn.RemoteAddr())
 
 	s.followers[conn] = struct{}{}
 }
