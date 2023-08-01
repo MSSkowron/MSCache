@@ -58,7 +58,9 @@ cd MSCache
 
 ## How to Use It
 
-To interact with the server, you can utilize the Client structure defined in /client/client.go. This structure provides necessary methods to communicate with the cache server. Keep in mind that you can use the `Set`, `Delete`, and `GET` methods only with the leader server, while only the `GET` method is currently available in follower servers.
+To interact with the server, you can utilize the Client structure defined in /client/client.go. This structure provides necessary methods to communicate with the cache server. Keep in mind that you can use the `Set`, `Delete`, and `GET` methods only with the leader server, while only the `GET` method is currently available in follower servers. 
+
+An example client's code is available [**here**](./client/runtest/main.go).
 
 ## License
 
