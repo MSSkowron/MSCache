@@ -38,12 +38,12 @@ func main() {
 
 		time.Sleep(1 * time.Second)
 
-		// err := c.Delete(context.TODO(), key)
-		// if err != nil {
-		// 	log.Fatalln(err)
-		// }
+		err := c.Delete(context.TODO(), key)
+		if err != nil {
+			log.Fatalln(err)
+		}
 
-		// time.Sleep(1 * time.Second)
+		time.Sleep(1 * time.Second)
 
 		val, err := c.Get(context.TODO(), key)
 		if err != nil {

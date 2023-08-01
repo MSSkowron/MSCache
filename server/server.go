@@ -206,8 +206,13 @@ func (s *Node) handleGetCommand(conn net.Conn, cmd *protocol.CommandGet) {
 
 	val, err := s.cache.Get(key)
 	if err != nil {
+		if errors.Is(err, cache.ErrKeyNotFound) {
+			response.Status = protocol.StatusKeyNotFound
+			return
+		}
+
 		logger.CustomLogger.Error.Printf("getting key %s from cache error: %s", key, err.Error())
-		response.Status = protocol.StatusKeyNotFound
+		response.Status = protocol.StatusError
 		return
 	}
 
