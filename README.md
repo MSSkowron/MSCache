@@ -50,4 +50,9 @@ cd MSCache
 **Note**: Each node needs to have a different listen address.
 
 ## How to Use It
+
 To interact with the server, you can utilize the Client structure defined in ./client/client.go. This structure provides the necessary methods to communicate with the cache server.
+
+## License
+
+The project is available as open source under the terms of the MIT License.
