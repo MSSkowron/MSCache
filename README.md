@@ -9,14 +9,17 @@ MSCache is a distributed key-value cache implemented in Go, facilitating a distr
 - Go 1.20
 
 ## Requirements
+
 Make sure you have Go installed on your system before running the application.
 
 ## Installation
+
 Clone the repository:
 
-git clone https://github.com/MSSkowron/MSCache
+git clone <https://github.com/MSSkowron/MSCache>
 
 ## How to run
+
 Navigate to the project directory:
 
 ```
@@ -27,22 +30,26 @@ cd MSCache
 
 - Starting a Leader Node
     To start a leader node, run the following command:
+
     ```
     go run ./server/cmd/main.go --listenaddr <address>
     ```
 
     For example:
+
     ```
     go run ./server/cmd/main.go --listenaddr 127.0.0.1:5000
     ```
 
 - Starting a Follower Node
     To start a follower node, use the following command:
+
     ```
     go run ./server/cmd/main.go --listenaddr <address> --leaderaddr <address>
     ```
 
     For example:
+
     ```
     go run ./server/cmd/main.go --listenaddr 127.0.0.1:5001 --leaderaddr 127.0.0.1:5000
     ```
