@@ -14,9 +14,11 @@ import (
 )
 
 var (
+	// ErrEmptyLeaderAddress is returned when leader address is empty.
 	ErrEmptyLeaderAddress = errors.New("leader address is empty")
 )
 
+// Node represents a server node.
 type Node struct {
 	listener      net.Listener
 	listenAddress string
@@ -27,6 +29,7 @@ type Node struct {
 	cache         cache.Cache
 }
 
+// New creates a new server node.
 func New(listenAddress, leaderAddress string, isLeader bool, c cache.Cache) *Node {
 	return &Node{
 		listenAddress: listenAddress,
@@ -36,6 +39,7 @@ func New(listenAddress, leaderAddress string, isLeader bool, c cache.Cache) *Nod
 	}
 }
 
+// Run runs the server node.
 func (s *Node) Run() error {
 	ln, err := net.Listen("tcp", s.listenAddress)
 	if err != nil {
@@ -74,6 +78,7 @@ func (s *Node) Run() error {
 	}
 }
 
+// Close closes the server node.
 func (s *Node) Close() error {
 	return s.listener.Close()
 }

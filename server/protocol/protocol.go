@@ -11,10 +11,15 @@ import (
 type Command byte
 
 const (
+	// CmdNone represents an empty command.
 	CmdNone Command = iota
+	// CmdSet represents the Set command.
 	CmdSet
+	// CmdGet represents the Get command.
 	CmdGet
+	// CmdDel represents the Delete command.
 	CmdDel
+	// CmdJoin represents the Join command.
 	CmdJoin
 )
 
@@ -22,47 +27,52 @@ const (
 type Status byte
 
 const (
+	// StatusNone represents an empty status.
 	StatusNone Status = iota
+	// StatusOK represents a successful status.
 	StatusOK
+	// StatusError represents an error status.
 	StatusError
+	// StatusKeyNotFound represents a key not found status.
 	StatusKeyNotFound
+	// StatusNotLeader represents a not leader status.
 	StatusNotLeader
 )
 
-// ResponseSet represents the response for the Set command.
+// ResponseSet represents response for Set command.
 type ResponseSet struct {
 	Status Status
 }
 
-// ResponseGet represents the response for the Get command.
+// ResponseGet represents response for Get command.
 type ResponseGet struct {
 	Status Status
 	Value  []byte
 }
 
-// ResponseDelete represents the response for the Delete command.
+// ResponseDelete represents response for Delete command.
 type ResponseDelete struct {
 	Status Status
 }
 
-// CommandSet represents the Set command.
+// CommandSet represents Set command.
 type CommandSet struct {
 	Key   []byte
 	Value []byte
 	TTL   int
 }
 
-// CommandGet represents the Get command.
+// CommandGet represents Get command.
 type CommandGet struct {
 	Key []byte
 }
 
-// CommandDelete represents the Delete command.
+// CommandDelete represents Delete command.
 type CommandDelete struct {
 	Key []byte
 }
 
-// CommandJoin represents the Join command.
+// CommandJoin represents Join command.
 type CommandJoin struct{}
 
 func (s Status) String() string {
@@ -80,6 +90,7 @@ func (s Status) String() string {
 	}
 }
 
+// Bytes returns byte representation of response to set command.
 func (r *ResponseSet) Bytes() ([]byte, error) {
 	buf := new(bytes.Buffer)
 	if err := binary.Write(buf, binary.LittleEndian, r.Status); err != nil {
@@ -89,6 +100,7 @@ func (r *ResponseSet) Bytes() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// Bytes returns byte representation of response to get command.
 func (r *ResponseGet) Bytes() ([]byte, error) {
 	buf := new(bytes.Buffer)
 	if err := binary.Write(buf, binary.LittleEndian, r.Status); err != nil {
@@ -106,6 +118,7 @@ func (r *ResponseGet) Bytes() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// Bytes returns byte representation of response to delete command.
 func (r *ResponseDelete) Bytes() ([]byte, error) {
 	buf := new(bytes.Buffer)
 	if err := binary.Write(buf, binary.LittleEndian, r.Status); err != nil {
@@ -115,6 +128,7 @@ func (r *ResponseDelete) Bytes() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// Bytes returns byte representation of join command.
 func (c *CommandSet) Bytes() ([]byte, error) {
 	buf := new(bytes.Buffer)
 	if err := binary.Write(buf, binary.LittleEndian, CmdSet); err != nil {
@@ -144,6 +158,7 @@ func (c *CommandSet) Bytes() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// Bytes returns byte representation of get command.
 func (c *CommandGet) Bytes() ([]byte, error) {
 	buf := new(bytes.Buffer)
 	if err := binary.Write(buf, binary.LittleEndian, CmdGet); err != nil {
@@ -161,6 +176,7 @@ func (c *CommandGet) Bytes() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// Bytes returns byte representation of delete command.
 func (c *CommandDelete) Bytes() ([]byte, error) {
 	buf := new(bytes.Buffer)
 	if err := binary.Write(buf, binary.LittleEndian, CmdDel); err != nil {
@@ -178,6 +194,7 @@ func (c *CommandDelete) Bytes() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// ParseSetResponse parses response to set command.
 func ParseSetResponse(r io.Reader) (*ResponseSet, error) {
 	resp := &ResponseSet{}
 
@@ -188,6 +205,7 @@ func ParseSetResponse(r io.Reader) (*ResponseSet, error) {
 	return resp, nil
 }
 
+// ParseGetResponse parses response to get command.
 func ParseGetResponse(r io.Reader) (*ResponseGet, error) {
 	resp := &ResponseGet{}
 
@@ -207,6 +225,7 @@ func ParseGetResponse(r io.Reader) (*ResponseGet, error) {
 	return resp, nil
 }
 
+// ParseDeleteResponse parses response to delete command.
 func ParseDeleteResponse(r io.Reader) (*ResponseDelete, error) {
 	resp := &ResponseDelete{}
 
@@ -217,6 +236,7 @@ func ParseDeleteResponse(r io.Reader) (*ResponseDelete, error) {
 	return resp, nil
 }
 
+// ParseCommand parses command.
 func ParseCommand(r io.Reader) (any, error) {
 	var cmd Command
 	if err := binary.Read(r, binary.LittleEndian, &cmd); err != nil {

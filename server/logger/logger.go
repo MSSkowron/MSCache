@@ -5,6 +5,7 @@ import (
 	"os"
 )
 
+// CustomLogger is a custom logger with separate info and error loggers.
 var CustomLogger *Logger
 
 // Logger represents a custom logger with separate info and error loggers.
