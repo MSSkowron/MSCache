@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"time"
 
@@ -37,6 +38,11 @@ func (s *ServerNode) Run() error {
 	if err != nil {
 		return fmt.Errorf("listen error: %s", err.Error())
 	}
+	defer func() {
+		if err := ln.Close(); err != nil {
+			log.Fatalf("error while closing net listener: %s", err.Error())
+		}
+	}()
 
 	if s.isLeader {
 		s.followers = make(map[net.Conn]struct{})
@@ -50,7 +56,7 @@ func (s *ServerNode) Run() error {
 		}
 	}
 
-	logger.CustomLogger.Info.Printf("server is running on port [%s] is leader [%t]", s.listenAddress, s.isLeader)
+	logger.CustomLogger.Info.Printf("server is running on port [%s], is leader [%t]", s.listenAddress, s.isLeader)
 
 	for {
 		conn, err := ln.Accept()
