@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/MSSkowron/MSCache/server/protocol"
+	"github.com/MSSkowron/MSCache/internal/protocol"
 )
 
 // Client is a client for the cache server.

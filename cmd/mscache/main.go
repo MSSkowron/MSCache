@@ -4,8 +4,8 @@ import (
 	"flag"
 	"log"
 
-	"github.com/MSSkowron/MSCache/server"
-	"github.com/MSSkowron/MSCache/server/cache"
+	"github.com/MSSkowron/MSCache/internal/cache"
+	"github.com/MSSkowron/MSCache/internal/node"
 )
 
 func main() {
@@ -19,7 +19,7 @@ func main() {
 		log.Fatalln("listen address is empty")
 	}
 
-	if err := server.New(*listenAddrFlag, *leaderAddrFlag, len(*leaderAddrFlag) == 0, cache.New()).Run(); err != nil {
+	if err := node.New(*listenAddrFlag, *leaderAddrFlag, len(*leaderAddrFlag) == 0, cache.New()).Run(); err != nil {
 		log.Fatalln(err)
 	}
 }

@@ -1,19 +1,13 @@
 BINARY_NAME=mscache
 
 buildserver:
-	go build -o server/bin/${BINARY_NAME} ./server/cmd
+	go build -o /bin/mscache/${BINARY_NAME} ./cmd/mscache/main.go
 
 runleader: buildserver 
-	./server/bin/${BINARY_NAME} --listenaddr :3000
+	./bin/mscache/${BINARY_NAME}  --listenaddr :3000
 
 runfollower: buildserver 
-	./server/bin/${BINARY_NAME} --listenaddr :4000 --leaderaddr :3000 
-
-buildclient:
-	go build -o client/bin/${BINARY_NAME} ./client/runtest
-
-runclient: buildclient
-	./client/bin/${BINARY_NAME} --endpoint :3000
+	./bin/mscache/${BINARY_NAME} --listenaddr :4000 --leaderaddr :3000 
 
 test: 
 	go test ./...
