@@ -32,35 +32,45 @@ cd MSCache
     To launch a leader node, use the following command:
 
     ```
-    go run ./server/cmd/main.go --listenaddr <address>
+    go run ./cmd/mscache/main.go --listenaddr <address>
     ```
 
     For example:
 
     ```
-    go run ./server/cmd/main.go --listenaddr 127.0.0.1:5000
+    go run ./cmd/mscache/main.go --listenaddr 127.0.0.1:5000
     ```
 
 - Starting a Follower Node
     To launch a follower node, use the following command:
 
     ```
-    go run ./server/cmd/main.go --listenaddr <address> --leaderaddr <address>
+    go run ./cmd/mscache/main.go --listenaddr <address> --leaderaddr <address>
     ```
 
     For example:
 
     ```
-    go run ./server/cmd/main.go --listenaddr 127.0.0.1:5001 --leaderaddr 127.0.0.1:5000
+    go run ./cmd/mscache/main.go --listenaddr 127.0.0.1:5001 --leaderaddr 127.0.0.1:5000
     ```
 
 **Note**: Each node must have a unique listen address.
 
 ## How to Use It
 
-To interact with the server, you can utilize the Client structure defined in /client/client.go. This structure provides necessary methods to communicate with the cache server. Keep in mind that you can use the `Set`, `Delete`, and `GET` methods only with the leader server, while only the `GET` method is currently available in follower servers. 
+To interact with the server, you can utilize the Client structure defined in /client/client.go. This structure provides necessary methods to communicate with the cache server. Keep in mind that you can use the `Set`, `Delete`, and `GET` methods only with the leader server, while only the `GET` method is currently available in follower servers.
 
-An example client's code is available [**here**](./client/runtest/main.go).
+An example client's code is available [**here**](./examples/client/main.go). You can run it specifying the server node's address with the `serveraddr` flag.
+
+```
+go run ./examples/client/main.go --serveraddr <address>
+```
+
+For example:
+
+```
+go run ./examples/client/main.go --serveraddr 127.0.0.1:5000
+```
 
 ## License
 
