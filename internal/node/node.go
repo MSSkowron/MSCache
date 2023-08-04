@@ -43,7 +43,7 @@ func New(listenAddress, leaderAddress string, isLeader bool, c cache.Cache) *Nod
 func (s *Node) Run() error {
 	ln, err := net.Listen("tcp", s.listenAddress)
 	if err != nil {
-		return fmt.Errorf("running tcp listener error: %w", err)
+		return fmt.Errorf("running tcp listener: %w", err)
 	}
 	defer func() {
 		_ = ln.Close()
@@ -59,7 +59,7 @@ func (s *Node) Run() error {
 		}
 
 		if err := s.dialLeader(); err != nil {
-			return fmt.Errorf("connecting to leader %s error: %w", s.leaderAddress, err)
+			return fmt.Errorf("connecting to leader %s: %w", s.leaderAddress, err)
 		}
 
 		logger.Infof("Connected to leader %s", s.leaderAddress)
@@ -234,12 +234,12 @@ func (s *Node) handleSetCommand(conn net.Conn, cmd *protocol.CommandSet) {
 	defer func() {
 		b, err := response.Bytes()
 		if err != nil {
-			logger.Errorf("responding to %s while handling SET command error: %w", conn.RemoteAddr(), err)
+			logger.Errorf("responding to %s while handling SET command: %w", conn.RemoteAddr(), err)
 			return
 		}
 
 		if err := s.respond(conn, b); err != nil {
-			logger.Errorf("responding to %s while handling SET command error: %w", conn.RemoteAddr(), err)
+			logger.Errorf("responding to %s while handling SET command: %w", conn.RemoteAddr(), err)
 			return
 		}
 	}()
@@ -248,7 +248,7 @@ func (s *Node) handleSetCommand(conn net.Conn, cmd *protocol.CommandSet) {
 		Value: cmd.Value,
 		TTL:   time.Second * time.Duration(cmd.TTL),
 	}); err != nil {
-		logger.Errorf("setting key %s to value %s in cache error: %w", key, value, err)
+		logger.Errorf("setting key %s to value %s in cache: %w", key, value, err)
 		response.Status = protocol.StatusError
 		return
 	}
@@ -290,12 +290,12 @@ func (s *Node) handleDeleteCommand(conn net.Conn, cmd *protocol.CommandDelete) {
 	defer func() {
 		b, err := response.Bytes()
 		if err != nil {
-			logger.Errorf("responding to %s while handling DELETE command error: %w", conn.RemoteAddr(), err)
+			logger.Errorf("responding to %s while handling DELETE command: %w", conn.RemoteAddr(), err)
 			return
 		}
 
 		if err := s.respond(conn, b); err != nil {
-			logger.Errorf("responding to %s while handling DELETE command error: %w", conn.RemoteAddr(), err)
+			logger.Errorf("responding to %s while handling DELETE command: %w", conn.RemoteAddr(), err)
 			return
 		}
 	}()
