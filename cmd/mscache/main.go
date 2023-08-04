@@ -29,7 +29,7 @@ func parseFlags() (listenAddr, leaderAddr string, err error) {
 	flag.Parse()
 
 	if len(listenAddr) == 0 {
-		err = fmt.Errorf("Server's listen address is empty. Specify it with --listenaddr flag")
+		err = fmt.Errorf("server's listen address is empty. Specify it with --listenaddr flag")
 	}
 
 	return
