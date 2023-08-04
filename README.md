@@ -56,6 +56,8 @@ For example:
 go run ./cmd/mscache/main.go --listenaddr 127.0.0.1:5001 --leaderaddr 127.0.0.1:5000
 ```
 
+**Note**: Each node must have a unique listen address.
+
 ## Install & Run with `go install`
 
 You can install the app with the `go install` to have it available globally:
@@ -69,8 +71,6 @@ Then, you have the `mscache` command available globally, and you can run it by e
 ```
 mscache --listenaddr <address> --leaderaddr <address>
 ```
-
-**Note**: Each node must have a unique listen address.
 
 ## How to interact with Server
 
