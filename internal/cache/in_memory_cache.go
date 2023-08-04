@@ -11,8 +11,8 @@ type InMemoryCache struct {
 	mu   sync.RWMutex  // mu is a read-write mutex used to synchronize concurrent access to the cache.
 }
 
-// New creates a new InMemoryCache.
-func New() *InMemoryCache {
+// NewInMemoryCache creates a new InMemoryCache.
+func NewInMemoryCache() *InMemoryCache {
 	return &InMemoryCache{
 		mu:   sync.RWMutex{},
 		data: make(map[Key]Value),

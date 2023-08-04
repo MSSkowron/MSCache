@@ -2,24 +2,40 @@ package main
 
 import (
 	"flag"
-	"log"
+	"fmt"
+	"os"
 
 	"github.com/MSSkowron/MSCache/internal/cache"
 	"github.com/MSSkowron/MSCache/internal/node"
 )
 
 func main() {
-	var (
-		listenAddrFlag = flag.String("listenaddr", "", "listen address of the server")
-		leaderAddrFlag = flag.String("leaderaddr", "", "listen address of the leader server")
-	)
+	listenAddr, leaderAddr, err := parseFlags()
+	if err != nil {
+		handleError(err)
+	}
+
+	cache := cache.NewInMemoryCache()
+
+	err = node.New(listenAddr, leaderAddr, leaderAddr == "", cache).Run()
+	if err != nil {
+		handleError(err)
+	}
+}
+
+func parseFlags() (listenAddr, leaderAddr string, err error) {
+	flag.StringVar(&listenAddr, "listenaddr", "", "listen address of the server")
+	flag.StringVar(&leaderAddr, "leaderaddr", "", "listen address of the leader server")
 	flag.Parse()
 
-	if len(*listenAddrFlag) == 0 {
-		log.Fatalln("listen address is empty")
+	if len(listenAddr) == 0 {
+		err = fmt.Errorf("Server's listen address is empty. Specify it with --listenaddr flag")
 	}
 
-	if err := node.New(*listenAddrFlag, *leaderAddrFlag, len(*leaderAddrFlag) == 0, cache.New()).Run(); err != nil {
-		log.Fatalln(err)
-	}
+	return
+}
+
+func handleError(err error) {
+	fmt.Println("Error:", err)
+	os.Exit(1)
 }

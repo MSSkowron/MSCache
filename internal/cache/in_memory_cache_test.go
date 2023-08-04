@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNew(t *testing.T) {
-	c := New()
+func TestNewInMemoryCache(t *testing.T) {
+	c := NewInMemoryCache()
 
 	assert.NotNil(t, c)
 	assert.NotNil(t, c.data)
@@ -79,7 +79,7 @@ func TestSet(t *testing.T) {
 		},
 	}
 
-	c := New()
+	c := NewInMemoryCache()
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
@@ -114,7 +114,7 @@ func TestGet(t *testing.T) {
 		},
 	}
 
-	c := New()
+	c := NewInMemoryCache()
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
@@ -154,7 +154,7 @@ func TestDelete(t *testing.T) {
 		},
 	}
 
-	c := New()
+	c := NewInMemoryCache()
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
@@ -194,7 +194,7 @@ func TestContaints(t *testing.T) {
 		},
 	}
 
-	c := New()
+	c := NewInMemoryCache()
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
