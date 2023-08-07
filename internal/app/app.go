@@ -18,13 +18,13 @@ var (
 func Run() error {
 	listenAddr, leaderAddr, err := parseFlags()
 	if err != nil {
-		return fmt.Errorf("failed to read server listen address: %s\n", err.Error())
+		return fmt.Errorf("failed to read server listen address: %s", err)
 	}
 
 	cache := cache.NewInMemoryCache()
 
 	if err := node.New(listenAddr, leaderAddr, leaderAddr == "", cache).Run(); err != nil {
-		return fmt.Errorf("failed to start node: %s\n", err.Error())
+		return fmt.Errorf("failed to start node: %s", err)
 	}
 
 	return nil
