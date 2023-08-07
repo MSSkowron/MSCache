@@ -11,22 +11,22 @@ func init() {
 	logger = l.Sugar()
 }
 
-func Info(args ...any) {
-	logger.Info(args...)
-}
-
+// Infof logs the provided arguments at [InfoLevel] using the provided format.
 func Infof(format string, args ...any) {
 	logger.Infof(format, args...)
 }
 
+// Infoln logs the provided arguments at [InfoLevel] using the provided format.
 func Infoln(msg string) {
 	logger.Infoln(msg)
 }
 
+// Errorf logs the provided arguments at [ErrorLevel] using the provided format.
 func Errorf(format string, args ...any) {
 	logger.Errorf(format, args...)
 }
 
+// Errorln logs the provided arguments at [ErrorLevel] using the provided format.
 func Errorln(args ...any) {
 	logger.Errorln(args...)
 }
