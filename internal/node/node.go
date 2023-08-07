@@ -43,7 +43,7 @@ func New(listenAddress, leaderAddress string, isLeader bool, c cache.Cache) *Nod
 func (s *Node) Run() error {
 	ln, err := net.Listen("tcp", s.listenAddress)
 	if err != nil {
-		return fmt.Errorf("running tcp listener: %w", err)
+		return fmt.Errorf("running tcp listener: %s", err)
 	}
 	defer func() {
 		_ = ln.Close()
@@ -59,7 +59,7 @@ func (s *Node) Run() error {
 		}
 
 		if err := s.dialLeader(); err != nil {
-			return fmt.Errorf("connecting to leader %s: %w", s.leaderAddress, err)
+			return fmt.Errorf("connecting to leader %s: %s", s.leaderAddress, err)
 		}
 
 		logger.Infof("Connected to leader %s", s.leaderAddress)
@@ -70,7 +70,7 @@ func (s *Node) Run() error {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			logger.Errorf("accepting a new connection: %w", err)
+			logger.Errorf("accepting a new connection: %s", err)
 			continue
 		}
 
@@ -146,12 +146,12 @@ func (s *Node) handleCommand(conn net.Conn, cmd any) {
 
 		b, err := response.Bytes()
 		if err != nil {
-			logger.Errorf("responding to %s while handling GET command: %w", conn.RemoteAddr(), err)
+			logger.Errorf("responding to %s while handling GET command: %s", conn.RemoteAddr(), err)
 			return
 		}
 
 		if err := s.respond(conn, b); err != nil {
-			logger.Errorf("responding to %s while handling GET command: %w", conn.RemoteAddr(), err)
+			logger.Errorf("responding to %s while handling GET command: %s", conn.RemoteAddr(), err)
 			return
 		}
 
@@ -168,12 +168,12 @@ func (s *Node) handleCommand(conn net.Conn, cmd any) {
 
 		b, err := response.Bytes()
 		if err != nil {
-			logger.Errorf("responding to %s while handling GET command: %w", conn.RemoteAddr(), err)
+			logger.Errorf("responding to %s while handling GET command: %s", conn.RemoteAddr(), err)
 			return
 		}
 
 		if err := s.respond(conn, b); err != nil {
-			logger.Errorf("responding to %s while handling GET command: %w", conn.RemoteAddr(), err)
+			logger.Errorf("responding to %s while handling GET command: %s", conn.RemoteAddr(), err)
 			return
 		}
 
@@ -211,7 +211,7 @@ func (s *Node) handleGetCommand(conn net.Conn, cmd *protocol.CommandGet) {
 			return
 		}
 
-		logger.Errorf("getting key %s from cache: %w", key, err)
+		logger.Errorf("getting key %s from cache: %s", key, err)
 		response.Status = protocol.StatusError
 		return
 	}
@@ -234,12 +234,12 @@ func (s *Node) handleSetCommand(conn net.Conn, cmd *protocol.CommandSet) {
 	defer func() {
 		b, err := response.Bytes()
 		if err != nil {
-			logger.Errorf("responding to %s while handling SET command: %w", conn.RemoteAddr(), err)
+			logger.Errorf("responding to %s while handling SET command: %s", conn.RemoteAddr(), err)
 			return
 		}
 
 		if err := s.respond(conn, b); err != nil {
-			logger.Errorf("responding to %s while handling SET command: %w", conn.RemoteAddr(), err)
+			logger.Errorf("responding to %s while handling SET command: %s", conn.RemoteAddr(), err)
 			return
 		}
 	}()
@@ -248,7 +248,7 @@ func (s *Node) handleSetCommand(conn net.Conn, cmd *protocol.CommandSet) {
 		Value: cmd.Value,
 		TTL:   time.Second * time.Duration(cmd.TTL),
 	}); err != nil {
-		logger.Errorf("setting key %s to value %s in cache: %w", key, value, err)
+		logger.Errorf("setting key %s to value %s in cache: %s", key, value, err)
 		response.Status = protocol.StatusError
 		return
 	}
@@ -265,14 +265,14 @@ func (s *Node) handleSetCommand(conn net.Conn, cmd *protocol.CommandSet) {
 
 			b, err := propagateSetCmd.Bytes()
 			if err != nil {
-				logger.Errorf("propagating SET command: %w", err)
+				logger.Errorf("propagating SET command: %s", err)
 				return
 			}
 
 			for follower := range s.followers {
 				_, err = follower.Write(b)
 				if err != nil {
-					logger.Errorf("propagating SET command to member %s: %w", follower.RemoteAddr(), err)
+					logger.Errorf("propagating SET command to member %s: %s", follower.RemoteAddr(), err)
 				}
 			}
 		}()
@@ -290,18 +290,18 @@ func (s *Node) handleDeleteCommand(conn net.Conn, cmd *protocol.CommandDelete) {
 	defer func() {
 		b, err := response.Bytes()
 		if err != nil {
-			logger.Errorf("responding to %s while handling DELETE command: %w", conn.RemoteAddr(), err)
+			logger.Errorf("responding to %s while handling DELETE command: %s", conn.RemoteAddr(), err)
 			return
 		}
 
 		if err := s.respond(conn, b); err != nil {
-			logger.Errorf("responding to %s while handling DELETE command: %w", conn.RemoteAddr(), err)
+			logger.Errorf("responding to %s while handling DELETE command: %s", conn.RemoteAddr(), err)
 			return
 		}
 	}()
 
 	if err := s.cache.Delete(cache.Key(cmd.Key)); err != nil {
-		logger.Errorf("deleting key %s from cache: %w", key, err)
+		logger.Errorf("deleting key %s from cache: %s", key, err)
 		response.Status = protocol.StatusKeyNotFound
 		return
 	}
@@ -316,14 +316,14 @@ func (s *Node) handleDeleteCommand(conn net.Conn, cmd *protocol.CommandDelete) {
 
 			b, err := propagateDelCmd.Bytes()
 			if err != nil {
-				logger.Errorf("propagating DELETE command: %w", err)
+				logger.Errorf("propagating DELETE command: %s", err)
 				return
 			}
 
 			for follower := range s.followers {
 				_, err = follower.Write(b)
 				if err != nil {
-					logger.Errorf("propagating DELETE command to member %s: %w", follower, err)
+					logger.Errorf("propagating DELETE command to member %s: %s", follower, err)
 				}
 			}
 		}()

@@ -7,13 +7,13 @@ import (
 
 var (
 	// ErrKeyIsEmpty is returned when the key is empty.
-	ErrKeyIsEmpty = errors.New("key cannot be empty")
+	ErrKeyIsEmpty = errors.New("key is empty")
 	// ErrValueIsNil is returned when the value is nil.
-	ErrValueIsNil = errors.New("value cannot be nil")
+	ErrValueIsNil = errors.New("value is nil")
 	// ErrValueIsEmpty is returned when the value is empty.
-	ErrValueIsEmpty = errors.New("value cannot be empty")
+	ErrValueIsEmpty = errors.New("value is empty")
 	// ErrInvalidTTL is returned when the TTL is less than or equal to 0.
-	ErrInvalidTTL = errors.New("ttl must be greater than 0")
+	ErrInvalidTTL = errors.New("invalid TTL value")
 	// ErrKeyNotFound is returned when the key is not found in the cache.
 	ErrKeyNotFound = errors.New("key not found")
 )
