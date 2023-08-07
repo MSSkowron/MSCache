@@ -35,12 +35,7 @@ func (c *InMemoryCache) Set(key Key, value Value) error {
 
 	c.data[key] = value
 
-	time.AfterFunc(value.TTL, func() {
-		c.mu.Lock()
-		defer c.mu.Unlock()
-
-		delete(c.data, key)
-	})
+	go c.deleteAfterTTL(key, value.TTL)
 
 	return nil
 }
@@ -91,8 +86,17 @@ func (c *InMemoryCache) Contains(key Key) (bool, error) {
 	return ok, nil
 }
 
+func (c *InMemoryCache) deleteAfterTTL(key Key, ttl time.Duration) {
+	<-time.After(ttl)
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	delete(c.data, key)
+}
+
 func (c *InMemoryCache) validateKey(key Key) error {
-	if len(key) == 0 {
+	if key == "" {
 		return ErrKeyIsEmpty
 	}
 
@@ -104,7 +108,7 @@ func (c *InMemoryCache) validateValue(value Value) error {
 		return ErrValueIsNil
 	}
 
-	if len(value.Value) == 0 {
+	if len(string(value.Value)) == 0 {
 		return ErrValueIsEmpty
 	}
 
