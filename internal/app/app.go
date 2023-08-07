@@ -15,6 +15,7 @@ var (
 	ErrServerListenAddressNotSpecified = errors.New("server listen address flag is empty & MSCACHE_LISTENADDR environment variable is not set")
 )
 
+// Run start the application by starting a new server node and returns an error if something went wrong.
 func Run() error {
 	listenAddr, leaderAddr, err := parseFlags()
 	if err != nil {
